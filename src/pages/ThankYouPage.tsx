@@ -17,8 +17,8 @@ const ThankYouPage = () => {
       case 'registration':
         return {
           title: 'Welcome to Mechinweb!',
-          subtitle: 'Your account has been created successfully',
-          message: 'Thank you for joining Mechinweb! We\'ve sent a verification email to your inbox. Please check your email and click the verification link to activate your account, then return here to log in.',
+          subtitle: 'Your account is ready!',
+          message: 'Thank you for joining Mechinweb! Your account has been created and you can now log in to access our services.',
           icon: User,
           gradient: 'from-green-500 to-emerald-600',
           actions: [
@@ -170,15 +170,15 @@ const ThankYouPage = () => {
                     <div className="w-8 h-8 bg-cyan-500 rounded-full flex items-center justify-center mx-auto mb-2">
                       <span className="text-white font-bold">1</span>
                     </div>
-                    <p className="text-white font-medium">Verify Email</p>
-                    <p className="text-gray-400">Click the link in your email</p>
+                    <p className="text-white font-medium">Login</p>
+                    <p className="text-gray-400">Access your account</p>
                   </div>
                   <div className="text-center">
                     <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center mx-auto mb-2">
                       <span className="text-white font-bold">2</span>
                     </div>
-                    <p className="text-white font-medium">Login</p>
-                    <p className="text-gray-400">Access your client dashboard</p>
+                    <p className="text-white font-medium">Dashboard</p>
+                    <p className="text-gray-400">View your client dashboard</p>
                   </div>
                   <div className="text-center">
                     <div className="w-8 h-8 bg-pink-500 rounded-full flex items-center justify-center mx-auto mb-2">

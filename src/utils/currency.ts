@@ -186,12 +186,12 @@ export async function detectUserLocation(): Promise<LocationData> {
 export async function getAllExchangeRates(): Promise<ExchangeRates> {
   // Check cache first
   if (cachedRates && Date.now() - cachedRates.timestamp < CACHE_DURATION) {
-    console.log('Using cached exchange rates:', cachedRates.rates)
+    // console.log('Using cached exchange rates:', cachedRates.rates)
     return cachedRates.rates
   }
 
   try {
-    console.log('Fetching fresh exchange rates via Supabase function...')
+    // console.log('Fetching fresh exchange rates via Supabase function...')
     
     // Use Supabase Edge Function to get exchange rates (bypasses CORS)
     const { data, error } = await supabase.functions.invoke('exchange-rates')
@@ -204,7 +204,7 @@ export async function getAllExchangeRates(): Promise<ExchangeRates> {
       const rates = data.rates
       // Cache the rates
       cachedRates = { rates, timestamp: Date.now() }
-      console.log('Fresh exchange rates cached:', rates)
+      // console.log('Fresh exchange rates cached:', rates)
       return rates
     } else {
       throw new Error('Invalid response format from exchange rates function')
@@ -213,7 +213,7 @@ export async function getAllExchangeRates(): Promise<ExchangeRates> {
     console.error('Error fetching exchange rates from function:', error)
     
     // Use fallback rates
-    console.log('Using fallback exchange rates:', FALLBACK_RATES)
+    // console.log('Using fallback exchange rates:', FALLBACK_RATES)
     cachedRates = { rates: FALLBACK_RATES, timestamp: Date.now() }
     return FALLBACK_RATES
   }
@@ -231,7 +231,7 @@ export async function getPreferredCurrency(): Promise<string> {
         .maybeSingle();
       
       if (preferences && !preferences.auto_detect_currency) {
-        console.log('Using saved user preference:', preferences.preferred_currency)
+        // console.log('Using saved user preference:', preferences.preferred_currency)
         return preferences.preferred_currency || 'USD'
       }
     }
@@ -239,7 +239,7 @@ export async function getPreferredCurrency(): Promise<string> {
     // Auto-detect based on location
     const location = await detectUserLocation()
     const detectedCurrency = COUNTRY_CURRENCY_MAP[location.country_code] || location.currency || 'USD'
-    console.log('Auto-detected currency:', detectedCurrency, 'for country:', location.country_code)
+    // console.log('Auto-detected currency:', detectedCurrency, 'for country:', location.country_code)
     
     // Save detected preference for logged-in users (only if client profile exists)
     if (user) {
