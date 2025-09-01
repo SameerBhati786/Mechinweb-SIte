@@ -26,10 +26,10 @@ const ProfilePage = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   const [profileData, setProfileData] = useState({
-    name: 'John Doe',
-    email: 'john@example.com',
-    phone: '+1 (555) 123-4567',
-    company: 'Tech Solutions Inc.',
+    name: '',
+    email: '',
+    phone: '',
+    company: '',
     timezone: 'America/New_York',
     language: 'English'
   });
@@ -60,7 +60,7 @@ const ProfilePage = () => {
         .from('clients')
         .select('*')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
       
       if (profile) {
         setProfileData({
@@ -68,6 +68,16 @@ const ProfilePage = () => {
           email: profile.email || '',
           phone: profile.phone || '',
           company: profile.company || '',
+          timezone: 'America/New_York',
+          language: 'English'
+        });
+      } else {
+        // Fallback to user auth data if no profile exists
+        setProfileData({
+          name: user.user_metadata?.name || user.email?.split('@')[0] || '',
+          email: user.email || '',
+          phone: '',
+          company: '',
           timezone: 'America/New_York',
           language: 'English'
         });

@@ -6,7 +6,6 @@ import { convertCurrency, formatCurrency, getPreferredCurrency, detectUserLocati
 import { PricingService } from '../lib/pricing';
 import { PaymentService } from '../lib/payments';
 import QuantitySelector from '../components/QuantitySelector';
-import AddOnSelector from '../components/AddOnSelector';
 
 interface Service {
   id: string;
@@ -25,14 +24,6 @@ interface Service {
   };
 }
 
-interface AddOn {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  recommended?: boolean;
-}
-
 export function ServicePurchase() {
   const { serviceId } = useParams<{ serviceId: string }>();
   const navigate = useNavigate();
@@ -40,45 +31,19 @@ export function ServicePurchase() {
   const [service, setService] = useState<Service | null>(null);
   const [selectedPackage, setSelectedPackage] = useState<'basic' | 'standard' | 'enterprise'>('basic');
   const [quantity, setQuantity] = useState(1);
-  const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [userCurrency, setUserCurrency] = useState('USD');
   const [userLocation, setUserLocation] = useState('');
   const [convertedPricing, setConvertedPricing] = useState<any>({});
-  const [convertedAddOns, setConvertedAddOns] = useState<AddOn[]>([]);
-
-  const addOns: AddOn[] = [
-    { 
-      id: 'priority-support', 
-      name: 'Priority Support', 
-      description: '24/7 priority technical support with faster response times', 
-      price: 15,
-      recommended: true
-    },
-    { 
-      id: 'extended-warranty', 
-      name: 'Extended Support', 
-      description: 'Extended 3-month support period after service completion', 
-      price: 25 
-    },
-    { 
-      id: 'per-incident-support', 
-      name: 'Per Incident Support Package', 
-      description: 'Additional troubleshooting support for future issues', 
-      price: 20 
-    },
-    { 
-      id: 'acronis-incident-support', 
-      name: 'Acronis Incident Support', 
-      description: 'Specialized Acronis backup troubleshooting support', 
-      price: 15 
-    }
-  ];
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const initializePage = async () => {
       try {
+        setLoading(true);
+        setError(null);
+
         // Get current user
         const { data: { user: currentUser } } = await supabase.auth.getUser();
         setUser(currentUser);
@@ -97,7 +62,7 @@ export function ServicePurchase() {
           const serviceData = PricingService.getService(serviceId);
           
           if (!serviceData) {
-            console.error('Service not found:', serviceId);
+            setError('Service not found');
             setLoading(false);
             return;
           }
@@ -121,7 +86,6 @@ export function ServicePurchase() {
           };
 
           setService(transformedService);
-          console.log('Service loaded:', transformedService);
 
           // Convert pricing to user's currency
           if (currency !== 'USD') {
@@ -136,24 +100,13 @@ export function ServicePurchase() {
               standard: conversions[1],
               enterprise: conversions[2]
             });
-
-            // Convert add-on prices
-            const convertedAddOnsList = await Promise.all(
-              addOns.map(async (addOn) => ({
-                ...addOn,
-                price: await convertCurrency(addOn.price, 'USD', currency)
-              }))
-            );
-            setConvertedAddOns(convertedAddOnsList);
           } else {
             setConvertedPricing(transformedService.pricing);
-            setConvertedAddOns(addOns);
           }
-          
-          console.log('Pricing converted:', currency === 'USD' ? transformedService.pricing : convertedPricing);
         }
       } catch (error) {
         console.error('Error initializing page:', error);
+        setError('Failed to load service details');
       } finally {
         setLoading(false);
       }
@@ -168,29 +121,8 @@ export function ServicePurchase() {
     return pricing[selectedPackage] || 0;
   };
 
-  const getAddOnPrice = (addOnId: string) => {
-    const addOn = convertedAddOns.find(a => a.id === addOnId);
-    return addOn ? addOn.price : 0;
-  };
-
-  const getTotalAddOnPrice = () => {
-    return selectedAddOns.reduce((total, addOnId) => {
-      return total + getAddOnPrice(addOnId);
-    }, 0);
-  };
-
   const getTotalPrice = () => {
-    const basePrice = getCurrentPrice() * quantity;
-    const addOnPrice = getTotalAddOnPrice() * quantity;
-    return basePrice + addOnPrice;
-  };
-
-  const handleAddOnToggle = (addOnId: string) => {
-    setSelectedAddOns(prev => 
-      prev.includes(addOnId) 
-        ? prev.filter(id => id !== addOnId)
-        : [...prev, addOnId]
-    );
+    return getCurrentPrice() * quantity;
   };
 
   const handlePurchase = async () => {
@@ -210,7 +142,7 @@ export function ServicePurchase() {
         totalPrice,
         userCurrency,
         quantity,
-        selectedAddOns
+        [] // No add-ons
       );
 
       // Redirect to Zoho payment page
@@ -222,7 +154,7 @@ export function ServicePurchase() {
       }
     } catch (error) {
       console.error('Error creating payment:', error);
-      alert('Failed to create payment. Please try again.');
+      setError('Failed to create payment. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -239,12 +171,16 @@ export function ServicePurchase() {
     );
   }
 
-  if (!service) {
+  if (error || !service) {
     return (
       <div className="min-h-screen bg-gray-900 pt-20 flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-4xl font-bold text-white mb-4">Service Not Found</h1>
-          <p className="text-gray-400 mb-8">The requested service could not be found.</p>
+          <h1 className="text-4xl font-bold text-white mb-4">
+            {error || 'Service Not Found'}
+          </h1>
+          <p className="text-gray-400 mb-8">
+            {error || 'The requested service could not be found.'}
+          </p>
           <Link 
             to="/client/services"
             className="bg-cyan-500 hover:bg-cyan-600 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
@@ -382,16 +318,6 @@ export function ServicePurchase() {
                 </div>
               )}
 
-              {/* Add-ons */}
-              <div className="mb-6">
-                <AddOnSelector
-                  addOns={convertedAddOns}
-                  selectedAddOns={selectedAddOns}
-                  onAddOnToggle={handleAddOnToggle}
-                  currency={userCurrency}
-                />
-              </div>
-
               {/* Order Summary */}
               <div className="border-t border-gray-700 pt-6">
                 <h3 className="text-xl font-semibold text-white mb-4">Order Summary</h3>
@@ -415,12 +341,6 @@ export function ServicePurchase() {
                       <span className="text-white">{quantity}</span>
                     </div>
                   )}
-                  {selectedAddOns.length > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-400">Add-ons:</span>
-                      <span className="text-white">{formatCurrency(getTotalAddOnPrice(), userCurrency)}</span>
-                    </div>
-                  )}
                 </div>
 
                 <div className="border-t border-gray-700 pt-4 mb-6">
@@ -438,6 +358,12 @@ export function ServicePurchase() {
                     </div>
                   </div>
                 </div>
+
+                {error && (
+                  <div className="mb-6 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+                    <p className="text-red-400 text-sm">{error}</p>
+                  </div>
+                )}
 
                 <button
                   onClick={handlePurchase}

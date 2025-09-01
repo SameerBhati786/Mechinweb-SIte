@@ -72,9 +72,7 @@ const ClientRegister = () => {
           data: {
             name: formData.name,
           },
-          emailRedirectTo: `${window.location.origin}/client/login?verified=true`,
-          // Disable auto-confirmation to require email verification
-          shouldCreateUser: true
+          emailRedirectTo: `${window.location.origin}/client/login?verified=true`
         }
       });
 
@@ -91,18 +89,29 @@ const ClientRegister = () => {
         return;
       }
 
-      // Destructure the user object from the returned data
-      const { user } = authData;
+      if (authData.user && !authData.session) {
+        // User created but needs email verification
+        navigate(`/thank-you?type=registration&email=${encodeURIComponent(formData.email)}&name=${encodeURIComponent(formData.name)}`);
+      } else if (authData.session) {
+        // User was auto-confirmed, create profile immediately
+        const { error: profileError } = await supabase
+          .from('clients')
+          .insert([
+            {
+              id: authData.user.id,
+              name: formData.name,
+              email: formData.email,
+              email_verified: true,
+              email_verified_at: new Date().toISOString()
+            }
+          ]);
 
-      if (!user || !user.email_confirmed_at) {
-        setErrors({ general: 'Could not create user. Please try again.' });
-        setIsLoading(false);
-        return;
+        if (profileError) {
+          console.error('Error creating profile:', profileError);
+        }
+
+        navigate('/client/dashboard');
       }
-
-      // User registered successfully but needs email verification
-      // Create client profile only after email verification
-      navigate(`/thank-you?type=registration&email=${encodeURIComponent(formData.email)}&name=${encodeURIComponent(formData.name)}`);
       
     } catch (err) {
       console.error('Registration error:', err);

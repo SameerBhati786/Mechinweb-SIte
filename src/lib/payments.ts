@@ -13,7 +13,6 @@ export interface ServicePurchaseData {
   serviceId: string;
   packageType: string;
   quantity: number;
-  addOns: string[];
   currency: string;
   totalAmount: number;
 }
@@ -25,8 +24,7 @@ export class PaymentService {
     packageType: string,
     totalAmount: number,
     currency: string,
-    quantity: number = 1,
-    addOns: string[] = []
+    quantity: number = 1
   ): Promise<PaymentIntent> {
     try {
       console.log(`Creating payment intent: ${totalAmount} ${currency} for service ${serviceId}`);
@@ -93,11 +91,7 @@ export class PaymentService {
         quantity,
         unitPrice: usdAmount / quantity,
         totalPrice: usdAmount,
-        addOns: addOns.map(addOnId => ({
-          id: addOnId,
-          name: this.getAddOnName(addOnId),
-          price: this.getAddOnPrice(addOnId)
-        }))
+        addOns: []
       }];
 
       // Create Zoho invoice with real-time integration
@@ -117,27 +111,6 @@ export class PaymentService {
       console.error('Error creating payment intent:', error);
       throw error;
     }
-  }
-
-  // Helper methods for add-ons
-  private static getAddOnName(addOnId: string): string {
-    const addOnNames: Record<string, string> = {
-      'priority-support': 'Priority Support',
-      'extended-warranty': 'Extended Support (3 months)',
-      'per-incident-support': 'Per Incident Support Package',
-      'acronis-incident-support': 'Acronis Incident Support'
-    };
-    return addOnNames[addOnId] || 'Add-on Service';
-  }
-
-  private static getAddOnPrice(addOnId: string): number {
-    const addOnPrices: Record<string, number> = {
-      'priority-support': 15,
-      'extended-warranty': 25,
-      'per-incident-support': 20,
-      'acronis-incident-support': 15
-    };
-    return addOnPrices[addOnId] || 0;
   }
 
   // Enhanced payment confirmation with real-time updates
@@ -198,7 +171,7 @@ export class PaymentService {
   // Process payment success with enhanced tracking
   static async processPaymentSuccess(
     invoiceId: string,
-    serviceData: ServicePurchaseData
+    serviceData: Omit<ServicePurchaseData, 'addOns'>
   ) {
     try {
       // Get order by invoice ID
@@ -343,26 +316,21 @@ export class PaymentService {
   static calculateDynamicPricing(
     basePrice: number,
     quantity: number,
-    addOns: Array<{ id: string; price: number }>,
     currency: 'USD' | 'INR' = 'USD'
   ): {
     baseTotal: number;
-    addOnTotal: number;
     grandTotal: number;
     breakdown: Array<{ item: string; amount: number }>;
   } {
     const baseTotal = basePrice * quantity;
-    const addOnTotal = addOns.reduce((sum, addOn) => sum + addOn.price, 0);
-    const grandTotal = baseTotal + addOnTotal;
+    const grandTotal = baseTotal;
 
     const breakdown = [
-      { item: `Base service (${quantity} units)`, amount: baseTotal },
-      ...addOns.map(addOn => ({ item: addOn.id, amount: addOn.price }))
+      { item: `Base service (${quantity} units)`, amount: baseTotal }
     ];
 
     return {
       baseTotal,
-      addOnTotal,
       grandTotal,
       breakdown
     };

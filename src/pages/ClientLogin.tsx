@@ -75,12 +75,6 @@ const ClientLogin = () => {
       }
 
       if (data.user) {
-        // Check if user has verified their email
-        if (!data.user.email_confirmed_at) {
-          setErrors({ general: 'Please verify your email address before logging in. Check your inbox for the verification link.' });
-          return;
-        }
-
         // Create client profile if it doesn't exist (for newly verified users)
         const { data: existingProfile } = await supabase
           .from('clients')
@@ -89,13 +83,13 @@ const ClientLogin = () => {
           .maybeSingle();
 
         if (!existingProfile) {
-          // Create profile for newly verified user
+          // Create profile for user
           const { error: profileError } = await supabase
             .from('clients')
             .insert([
               {
                 id: data.user.id,
-                name: data.user.user_metadata?.name || formData.email.split('@')[0],
+                name: data.user.user_metadata?.name || data.user.email?.split('@')[0] || 'User',
                 email: formData.email,
                 email_verified: true,
                 email_verified_at: new Date().toISOString()
@@ -104,16 +98,6 @@ const ClientLogin = () => {
 
           if (profileError) {
             console.error('Error creating profile:', profileError);
-          }
-
-          // Send welcome email for newly verified users
-          try {
-            await EmailService.sendWelcomeEmail(
-              data.user.user_metadata?.name || formData.email.split('@')[0], 
-              formData.email
-            );
-          } catch (emailError) {
-            console.error('Failed to send welcome email:', emailError);
           }
         }
 
