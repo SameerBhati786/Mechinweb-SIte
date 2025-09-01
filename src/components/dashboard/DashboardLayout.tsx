@@ -135,7 +135,7 @@ const DashboardLayout = () => {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-white font-medium truncate">
-                  {user?.user_metadata?.name || user?.email || 'User'}
+                  {user?.user_metadata?.name || user?.email?.split('@')[0] || 'User'}
                 </p>
                 <p className="text-gray-400 text-sm truncate">Premium Client</p>
               </div>
