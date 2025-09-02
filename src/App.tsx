@@ -17,6 +17,7 @@ import HostingSupportPage from './pages/HostingSupportPage';
 import BlogPostPage from './pages/BlogPostPage';
 import ClientLogin from './pages/ClientLogin';
 import ClientRegister from './pages/ClientRegister';
+import EmailVerificationPage from './pages/EmailVerificationPage';
 import { ServicePurchase } from './pages/ServicePurchase';
 import PaymentSuccess from './pages/PaymentSuccess';
 import InvoiceView from './pages/InvoiceView';
@@ -71,6 +72,7 @@ function App() {
         <Route path="/blog/:slug" element={<BlogPostPage />} />
         <Route path="/client/login" element={<ClientLogin />} />
         <Route path="/client/register" element={<ClientRegister />} />
+        <Route path="/client/verify-email" element={<EmailVerificationPage />} />
         <Route path="/client/*" element={<DashboardLayout />}>
           <Route path="dashboard" element={<DashboardOverview />} />
           <Route path="services" element={<ServicesPage />} />
