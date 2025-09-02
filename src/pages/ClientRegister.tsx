@@ -72,7 +72,7 @@ const ClientRegister = () => {
           data: {
             name: formData.name,
           },
-          emailRedirectTo: `${window.location.origin}/client/login?verified=true`
+          emailRedirectTo: `${window.location.origin}/client/verify-email`
         }
       });
 
@@ -89,29 +89,13 @@ const ClientRegister = () => {
         return;
       }
 
-      if (authData.user && !authData.session) {
-        // User created but needs email verification
-        navigate(`/thank-you?type=registration&email=${encodeURIComponent(formData.email)}&name=${encodeURIComponent(formData.name)}`);
-      } else if (authData.session) {
-        // User was auto-confirmed, create profile immediately
-        const { error: profileError } = await supabase
-          .from('clients')
-          .insert([
-            {
-              id: authData.user.id,
-              name: formData.name,
-              email: formData.email,
-              email_verified: true,
-              email_verified_at: new Date().toISOString()
-            }
-          ]);
-
-        if (profileError) {
-          console.error('Error creating profile:', profileError);
+      // Redirect to email verification page
+      navigate('/client/verify-email', { 
+        state: { 
+          email: formData.email,
+          userData: { name: formData.name }
         }
-
-        navigate('/client/dashboard');
-      }
+      });
       
     } catch (err) {
       console.error('Registration error:', err);

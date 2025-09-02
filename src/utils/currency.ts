@@ -260,6 +260,8 @@ export async function getPreferredCurrency(): Promise<string> {
               country_code: location.country_code,
               auto_detect_currency: true,
               updated_at: new Date().toISOString()
+            }, {
+              onConflict: 'user_id'
             })
         }
       } catch (prefError) {
