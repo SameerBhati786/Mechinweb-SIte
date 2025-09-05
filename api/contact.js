@@ -43,8 +43,7 @@ async function sendContactEmails(contactData) {
           
           <p>For urgent matters, feel free to contact us directly:</p>
           <p>📧 Email: contact@mechinweb.com<br>
-          📱 WhatsApp: +1 (555) 123-4567<br>
-          📞 Phone: +1 (555) 123-4567</p>
+</p>
           
           <p>Best regards,<br>
           The Mechinweb Team</p>
