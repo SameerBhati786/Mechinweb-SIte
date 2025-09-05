@@ -130,7 +130,6 @@ const FALLBACK_RATES: ExchangeRates = {
   KES: 129.00,
   GHS: 15.80,
   MAD: 9.85,
-  ZAR: 18.50,
   VND: 24500.00,
   IDR: 15800.00,
   MYR: 4.65,
