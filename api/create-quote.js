@@ -11,7 +11,7 @@ const ZOHO_CONFIG = {
   client_secret: process.env.ZOHO_CLIENT_SECRET,
   refresh_token: process.env.ZOHO_REFRESH_TOKEN,
   organization_id: process.env.ZOHO_ORGANIZATION_ID,
-  base_url: 'https://invoice.zoho.com/api/v3'
+  base_url: 'https://invoice.zoho.in/api/v3'
 };
 
 // Email Configuration
@@ -30,7 +30,7 @@ const emailTransporter = nodemailer.createTransporter({
 
 async function getZohoAccessToken() {
   try {
-    const response = await axios.post('https://accounts.zoho.com/oauth/v2/token', null, {
+    const response = await axios.post('https://accounts.zoho.in/oauth/v2/token', null, {
       params: {
         refresh_token: ZOHO_CONFIG.refresh_token,
         client_id: ZOHO_CONFIG.client_id,
