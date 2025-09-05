@@ -169,7 +169,7 @@ async function getClientProfile(req, res) {
 // Send welcome email
 async function sendWelcomeEmail(client) {
   const emailOptions = {
-    from: 'contact@mechinweb.com',
+    from: 'no-reply@mechinweb.com',
     to: client.email,
     subject: 'Welcome to Mechinweb - Your Account is Ready!',
     html: `
@@ -210,8 +210,7 @@ async function sendWelcomeEmail(client) {
           
           <p>If you have any questions or need assistance, don't hesitate to contact us:</p>
           <p>📧 Email: contact@mechinweb.com<br>
-          📱 WhatsApp: +1 (555) 123-4567<br>
-          📞 Phone: +1 (555) 123-4567</p>
+</p>
           
           <p>Best regards,<br>
           The Mechinweb Team</p>
