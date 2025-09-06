@@ -75,31 +75,14 @@ const ClientLogin = () => {
       }
 
       if (data.user) {
-        // Create client profile if it doesn't exist (for newly verified users)
-        const { data: existingProfile } = await supabase
-          .from('clients')
-          .select('id')
-          .eq('id', data.user.id)
-          .maybeSingle();
-
-        if (!existingProfile) {
-          // Create profile for user
-          const { error: profileError } = await supabase
-            .from('clients')
-            .insert([
-              {
-                id: data.user.id,
-                name: data.user.user_metadata?.name || data.user.email?.split('@')[0] || 'User',
-                email: formData.email,
-                email_verified: true,
-                email_verified_at: new Date().toISOString()
-              }
-            ]);
-
-          if (profileError) {
-            console.error('Error creating profile:', profileError);
-          }
+        // Check if email is verified
+        if (!data.user.email_confirmed_at) {
+          setErrors({ general: 'Please verify your email before logging in. Check your inbox for the verification link.' });
+          return;
         }
+
+        // Create client profile if it doesn't exist (for newly verified users)
+        await ensureClientProfile(data.user);
 
         // Get user profile and redirect based on role
         const userProfile = await getCurrentUser();
@@ -115,6 +98,36 @@ const ClientLogin = () => {
       setErrors({ general: 'Login failed. Please try again.' });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const ensureClientProfile = async (user: any) => {
+    try {
+      const { data: existingProfile } = await supabase
+        .from('clients')
+        .select('id')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (!existingProfile) {
+        const { error: profileError } = await supabase
+          .from('clients')
+          .insert([
+            {
+              id: user.id,
+              name: user.user_metadata?.name || user.email?.split('@')[0] || 'User',
+              email: user.email,
+              email_verified: true,
+              email_verified_at: new Date().toISOString()
+            }
+          ]);
+
+        if (profileError) {
+          console.error('Error creating profile:', profileError);
+        }
+      }
+    } catch (error) {
+      console.error('Error ensuring client profile:', error);
     }
   };
 

@@ -33,6 +33,13 @@ const DashboardLayout = () => {
         navigate('/client/login');
         return;
       }
+      
+      // Check if email is verified
+      if (!user.email_confirmed_at) {
+        navigate('/client/verify-email');
+        return;
+      }
+      
       setUser(user);
       
       // Set up real-time connection status monitoring

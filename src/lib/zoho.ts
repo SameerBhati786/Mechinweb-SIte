@@ -45,6 +45,8 @@ export interface ZohoServiceItem {
 export class ZohoService {
   private static async callZohoFunction(endpoint: string, data?: any): Promise<any> {
     try {
+      console.log('Calling Zoho function:', endpoint, data ? 'with data' : 'no data');
+      
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/zoho-integration${endpoint}`, {
         method: data ? 'POST' : 'GET',
         headers: {
@@ -55,10 +57,14 @@ export class ZohoService {
       });
 
       if (!response.ok) {
-        throw new Error(`Zoho API call failed: ${response.statusText}`);
+        const errorText = await response.text();
+        console.error('Zoho function error:', response.status, errorText);
+        throw new Error(`Zoho API call failed: ${response.status} ${errorText}`);
       }
 
-      return await response.json();
+      const result = await response.json();
+      console.log('Zoho function result:', result);
+      return result;
     } catch (error) {
       console.error('Error calling Zoho function:', error);
       throw error;

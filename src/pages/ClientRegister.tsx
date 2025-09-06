@@ -72,7 +72,7 @@ const ClientRegister = () => {
           data: {
             name: formData.name,
           },
-          emailRedirectTo: `${window.location.origin}/client/verify-email`
+          emailRedirectTo: `${window.location.origin}/client/login?verified=true`
         }
       });
 
@@ -89,13 +89,18 @@ const ClientRegister = () => {
         return;
       }
 
-      // Redirect to email verification page
-      navigate('/client/verify-email', { 
-        state: { 
-          email: formData.email,
-          userData: { name: formData.name }
-        }
-      });
+      if (authData.user && !authData.user.email_confirmed_at) {
+        // User needs to verify email
+        navigate('/client/verify-email', { 
+          state: { 
+            email: formData.email,
+            userData: { name: formData.name }
+          }
+        });
+      } else {
+        // Email already verified or auto-confirmed
+        navigate('/thank-you?type=registration&email=' + encodeURIComponent(formData.email) + '&name=' + encodeURIComponent(formData.name));
+      }
       
     } catch (err) {
       console.error('Registration error:', err);

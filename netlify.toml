@@ -1,7 +1,32 @@
 [build]
   functions = "netlify/functions"
+  command = "npm run build"
+  publish = "dist"
 
-  [[redirects]]
+[build.environment]
+  NODE_VERSION = "18"
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
+
+[functions]
+  directory = "netlify/functions"
+
+# Environment variables for email functionality
+[context.production.environment]
+  EMAIL_USER = "no-reply@mechinweb.com"
+  # EMAIL_PASSWORD should be set in Netlify dashboard
+
+[context.deploy-preview.environment]
+  EMAIL_USER = "no-reply@mechinweb.com"
+
+# Headers for security
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"

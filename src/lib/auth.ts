@@ -14,6 +14,12 @@ export const getCurrentUser = async (): Promise<UserProfile | null> => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return null;
 
+    // Check if email is verified
+    if (!user.email_confirmed_at) {
+      console.log('User email not verified');
+      return null;
+    }
+
     const { data: profile } = await supabase
       .from('clients')
       .select('*')

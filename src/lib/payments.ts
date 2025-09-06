@@ -31,6 +31,11 @@ export class PaymentService {
       
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
+      
+      // Check if email is verified
+      if (!user.email_confirmed_at) {
+        throw new Error('Please verify your email before making purchases');
+      }
 
       // Get client data
       const { data: client } = await supabase

@@ -121,7 +121,7 @@ const ThankYouPage = () => {
                 </p>
                 {email && (
                   <p className="text-gray-300 text-sm mt-2">
-                    Confirmation sent to: {email}
+                    {type === 'registration' ? 'Please check your email to verify your account' : `Confirmation sent to: ${email}`}
                   </p>
                 )}
               </div>
