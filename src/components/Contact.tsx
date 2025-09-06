@@ -53,14 +53,33 @@ const Contact = () => {
     setIsSubmitting(true);
     
     try {
-      // For now, simulate successful submission
-      // In production, this would connect to your backend API
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Send email via Netlify function
+      const response = await fetch('/.netlify/functions/sendEmail', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type: 'contact_form',
+          data: {
+            name: formData.name,
+            email: formData.email,
+            subject: formData.subject,
+            message: formData.message,
+            timestamp: new Date().toISOString()
+          }
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to send message');
+      }
       
       setIsSubmitted(true);
     } catch (error) {
       console.error('Error sending message:', error);
-      alert('There was an error sending your message. Please try again or contact us directly.');
+      alert(`There was an error sending your message: ${error.message}. Please try again or contact us directly at contact@mechinweb.com.`);
     } finally {
       setIsSubmitting(false);
     }
