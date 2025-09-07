@@ -88,23 +88,48 @@ export class PaymentService {
 
       if (orderError) throw orderError;
 
-      // Prepare service items for Zoho
-      const serviceItems: ZohoServiceItem[] = [{
-        serviceId,
-        serviceName: service.name,
-        packageType,
-        quantity,
-        unitPrice: usdAmount / quantity,
-        totalPrice: usdAmount,
-        addOns: []
-      }];
+      // Call Netlify function to create Zoho invoice
+      const response = await fetch('/.netlify/functions/createPayment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          customerData: {
+            name: client.name,
+            email: client.email,
+            phone: client.phone,
+            company: client.company
+          },
+          serviceItems: [{
+            serviceName: service.name,
+            packageType,
+            quantity,
+            unitPrice: usdAmount / quantity,
+            totalPrice: usdAmount
+          }],
+          currency: targetCurrency,
+          notes: `Order ID: ${order.id}\nService: ${service.name}\nPackage: ${packageType}`
+        })
+      });
 
-      // Create Zoho invoice with real-time integration
-      const zohoInvoice = await ZohoService.createInvoiceFromOrder(
-        order.id,
-        serviceItems,
-        targetCurrency
-      );
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Payment creation failed: ${errorData.error}`);
+      }
+
+      const paymentData = await response.json();
+      const zohoInvoice = paymentData.invoice;
+
+      // Update order with Zoho invoice ID
+      await supabase
+        .from('orders')
+        .update({
+          zoho_invoice_id: zohoInvoice.invoice_id,
+          zoho_customer_id: zohoInvoice.customer_id,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', order.id);
 
       return {
         invoice_id: zohoInvoice.invoice_id,

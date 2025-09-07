@@ -53,7 +53,9 @@ const Contact = () => {
     setIsSubmitting(true);
     
     try {
-      // Send email via Netlify function
+      // Send email via Netlify function with enhanced error handling
+      console.log('Submitting contact form...');
+      
       const response = await fetch('/.netlify/functions/sendEmail', {
         method: 'POST',
         headers: {
@@ -71,15 +73,43 @@ const Contact = () => {
         })
       });
 
+      console.log('Response status:', response.status);
+      
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to send message');
+        const errorText = await response.text();
+        console.error('Response error:', errorText);
+        
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { error: errorText };
+        }
+        
+        throw new Error(errorData.error || `Server error: ${response.status}`);
       }
+      
+      const responseData = await response.json();
+      console.log('Email sent successfully:', responseData);
       
       setIsSubmitted(true);
     } catch (error) {
       console.error('Error sending message:', error);
-      alert(`There was an error sending your message: ${error.message}. Please try again or contact us directly at contact@mechinweb.com.`);
+      
+      // Show user-friendly error message
+      let errorMessage = 'There was an error sending your message. ';
+      
+      if (error.message.includes('credentials')) {
+        errorMessage += 'Email service is temporarily unavailable. ';
+      } else if (error.message.includes('timeout')) {
+        errorMessage += 'Request timed out. ';
+      } else {
+        errorMessage += `${error.message}. `;
+      }
+      
+      errorMessage += 'Please try again or contact us directly at contact@mechinweb.com.';
+      
+      alert(errorMessage);
     } finally {
       setIsSubmitting(false);
     }

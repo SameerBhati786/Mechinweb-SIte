@@ -57,16 +57,51 @@ ZOHO_ORGANIZATION_ID=your_zoho_organization_id
 
 ## Debugging Steps
 
+### Testing Netlify Functions
+
+#### Test Email Function:
+```bash
+# Test email configuration
+curl https://your-site.netlify.app/.netlify/functions/testEmail
+
+# Send test email
+curl -X POST https://your-site.netlify.app/.netlify/functions/testEmail \
+  -H "Content-Type: application/json"
+```
+
+#### Test Zoho Integration:
+```bash
+# Test Zoho configuration
+curl https://your-site.netlify.app/.netlify/functions/testZoho
+```
+
+#### Test Contact Form:
+```bash
+curl -X POST https://your-site.netlify.app/.netlify/functions/sendEmail \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "contact_form",
+    "data": {
+      "name": "Test User",
+      "email": "test@example.com",
+      "subject": "Test Message",
+      "message": "This is a test message"
+    }
+  }'
+```
+
 ### Email Verification Issues:
 - Check Supabase Auth settings
 - Verify email templates are configured
 - Check spam folder for verification emails
-- Ensure EMAIL_USER and EMAIL_PASSWORD are set in Netlify
+- **NEW**: Test email function: `/.netlify/functions/testEmail`
+- **NEW**: Check Netlify function logs for detailed error messages
 
 ### Payment Processing Issues:
+- **NEW**: Test Zoho integration: `/.netlify/functions/testZoho`
 - Check Zoho credentials in Netlify environment variables
 - Verify Zoho OAuth app permissions
-- Check Supabase function logs for errors
+- **NEW**: Check Netlify function logs for detailed error messages
 - Test Zoho API connectivity
 
 ### Performance Monitoring:
@@ -75,10 +110,38 @@ ZOHO_ORGANIZATION_ID=your_zoho_organization_id
 - Check for unused dependencies
 - Verify image optimization
 
+### Function Debugging:
+
+#### Check Netlify Function Logs:
+1. Go to Netlify Dashboard → Functions
+2. Click on function name to view logs
+3. Look for error messages and debug information
+
+#### Common Issues and Solutions:
+
+**Email Not Sending:**
+- Check if EMAIL_USER and EMAIL_PASSWORD are set in Netlify
+- Verify Zoho SMTP credentials are correct
+- Test with `/.netlify/functions/testEmail`
+- Check function logs for authentication errors
+
+**Zoho Payment Failures:**
+- Verify all 4 Zoho environment variables are set
+- Test Zoho connection with `/.netlify/functions/testZoho`
+- Check if refresh token has expired
+- Verify organization ID is correct
+
+**Function Timeout Issues:**
+- Functions have 10-second timeout on Netlify
+- Check for slow API calls
+- Implement proper error handling
+
 ## Deployment Checklist
 
 ### Before Deploying:
 - [ ] All environment variables set in Netlify
+- [ ] **NEW**: Test email function works
+- [ ] **NEW**: Test Zoho integration works
 - [ ] Zoho OAuth app configured
 - [ ] Email SMTP credentials tested
 - [ ] Supabase RLS policies configured
@@ -87,6 +150,7 @@ ZOHO_ORGANIZATION_ID=your_zoho_organization_id
 ### After Deploying:
 - [ ] Test user registration flow
 - [ ] Verify email verification works
+- [ ] **NEW**: Test contact form email sending
+- [ ] **NEW**: Test Zoho payment creation
 - [ ] Test payment processing
 - [ ] Check email delivery
-- [ ] Monitor error logs

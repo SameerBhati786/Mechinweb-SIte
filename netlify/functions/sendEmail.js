@@ -1,30 +1,107 @@
 const nodemailer = require('nodemailer');
 
-// Email Configuration for Zoho SMTP
+// Enhanced logging function
+const log = (level, message, data = null) => {
+  const timestamp = new Date().toISOString();
+  const logEntry = {
+    timestamp,
+    level,
+    message,
+    data: data ? JSON.stringify(data, null, 2) : null
+  };
+  console.log(`[${timestamp}] ${level.toUpperCase()}: ${message}`, data || '');
+  return logEntry;
+};
+
+// Email Configuration with enhanced error handling
 const createEmailTransporter = () => {
-  return nodemailer.createTransporter({
+  log('info', 'Creating email transporter');
+  
+  const config = {
     host: 'smtp.zoho.in',
     port: 587,
-    secure: false, // true for 465, false for other ports
+    secure: false,
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASSWORD
     },
     tls: {
       rejectUnauthorized: false
-    }
+    },
+    debug: true, // Enable debug logging
+    logger: true // Enable logger
+  };
+
+  log('info', 'Email config', {
+    host: config.host,
+    port: config.port,
+    user: config.auth.user,
+    hasPassword: !!config.auth.pass
   });
+
+  return nodemailer.createTransporter(config);
+};
+
+// Verify email configuration
+const verifyEmailConfig = async (transporter) => {
+  try {
+    log('info', 'Verifying email configuration...');
+    await transporter.verify();
+    log('info', 'Email configuration verified successfully');
+    return true;
+  } catch (error) {
+    log('error', 'Email configuration verification failed', error);
+    throw new Error(`Email configuration invalid: ${error.message}`);
+  }
+};
+
+// Enhanced email sending with retry logic
+const sendEmailWithRetry = async (transporter, emailOptions, maxRetries = 3) => {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      log('info', `Sending email attempt ${attempt}/${maxRetries}`, {
+        to: emailOptions.to,
+        subject: emailOptions.subject
+      });
+      
+      const result = await transporter.sendMail(emailOptions);
+      log('info', 'Email sent successfully', {
+        messageId: result.messageId,
+        response: result.response
+      });
+      return result;
+    } catch (error) {
+      log('error', `Email send attempt ${attempt} failed`, error);
+      
+      if (attempt === maxRetries) {
+        throw error;
+      }
+      
+      // Wait before retry (exponential backoff)
+      await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+    }
+  }
 };
 
 // Main handler function
 exports.handler = async (event, context) => {
+  const requestId = context.awsRequestId || Date.now().toString();
+  
+  log('info', 'Function invoked', {
+    requestId,
+    method: event.httpMethod,
+    path: event.path,
+    headers: event.headers
+  });
+
   // Handle CORS preflight
   if (event.httpMethod === 'OPTIONS') {
+    log('info', 'Handling CORS preflight');
     return {
       statusCode: 200,
       headers: {
         'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
         'Access-Control-Allow-Methods': 'POST, OPTIONS'
       },
       body: ''
@@ -33,44 +110,66 @@ exports.handler = async (event, context) => {
 
   // Only allow POST requests
   if (event.httpMethod !== 'POST') {
+    log('error', 'Invalid HTTP method', { method: event.httpMethod });
     return {
       statusCode: 405,
       headers: {
         'Access-Control-Allow-Origin': '*',
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ error: 'Method not allowed' })
+      body: JSON.stringify({ 
+        success: false, 
+        error: 'Method not allowed',
+        requestId 
+      })
     };
   }
 
   try {
-    const { type, data } = JSON.parse(event.body);
-    
-    console.log('Email function called with type:', type);
-    console.log('Email credentials check:', {
-      hasEmailUser: !!process.env.EMAIL_USER,
-      hasEmailPassword: !!process.env.EMAIL_PASSWORD,
-      emailUser: process.env.EMAIL_USER
-    });
+    // Parse request body
+    let requestData;
+    try {
+      requestData = JSON.parse(event.body || '{}');
+      log('info', 'Request data parsed', { type: requestData.type });
+    } catch (parseError) {
+      log('error', 'Failed to parse request body', parseError);
+      throw new Error('Invalid JSON in request body');
+    }
+
+    const { type, data } = requestData;
 
     // Validate email credentials
     if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
+      log('error', 'Email credentials missing', {
+        hasEmailUser: !!process.env.EMAIL_USER,
+        hasEmailPassword: !!process.env.EMAIL_PASSWORD
+      });
       throw new Error('Email credentials not configured. Please set EMAIL_USER and EMAIL_PASSWORD in Netlify environment variables.');
     }
 
+    // Create and verify email transporter
     const transporter = createEmailTransporter();
+    await verifyEmailConfig(transporter);
 
-    if (type === 'contact_form') {
-      await handleContactForm(transporter, data);
-    } else if (type === 'quote_request') {
-      await handleQuoteRequest(transporter, data);
-    } else if (type === 'welcome_email') {
-      await handleWelcomeEmail(transporter, data);
-    } else if (type === 'payment_confirmation') {
-      await handlePaymentConfirmation(transporter, data);
-    } else {
-      throw new Error('Invalid email type');
+    // Route to appropriate handler
+    switch (type) {
+      case 'contact_form':
+        await handleContactForm(transporter, data, requestId);
+        break;
+      case 'quote_request':
+        await handleQuoteRequest(transporter, data, requestId);
+        break;
+      case 'welcome_email':
+        await handleWelcomeEmail(transporter, data, requestId);
+        break;
+      case 'payment_confirmation':
+        await handlePaymentConfirmation(transporter, data, requestId);
+        break;
+      default:
+        throw new Error(`Invalid email type: ${type}`);
     }
+
+    log('info', 'Email function completed successfully', { requestId });
 
     return {
       statusCode: 200,
@@ -81,12 +180,17 @@ exports.handler = async (event, context) => {
       body: JSON.stringify({ 
         success: true, 
         message: 'Email sent successfully',
+        requestId,
         timestamp: new Date().toISOString()
       })
     };
 
   } catch (error) {
-    console.error('Email function error:', error);
+    log('error', 'Email function error', {
+      requestId,
+      error: error.message,
+      stack: error.stack
+    });
     
     return {
       statusCode: 500,
@@ -97,15 +201,28 @@ exports.handler = async (event, context) => {
       body: JSON.stringify({ 
         success: false, 
         error: error.message,
-        timestamp: new Date().toISOString()
+        requestId,
+        timestamp: new Date().toISOString(),
+        debug: {
+          hasEmailUser: !!process.env.EMAIL_USER,
+          hasEmailPassword: !!process.env.EMAIL_PASSWORD,
+          emailUser: process.env.EMAIL_USER
+        }
       })
     };
   }
 };
 
 // Handle contact form submissions
-async function handleContactForm(transporter, data) {
+async function handleContactForm(transporter, data, requestId) {
+  log('info', 'Processing contact form', { requestId, email: data.email });
+  
   const { name, email, subject, message } = data;
+
+  // Validate required fields
+  if (!name || !email || !subject || !message) {
+    throw new Error('Missing required fields: name, email, subject, message');
+  }
 
   // Email to customer (confirmation)
   const customerEmailOptions = {
@@ -161,6 +278,7 @@ async function handleContactForm(transporter, data) {
           </div>
           
           <p><strong>Submitted:</strong> ${new Date().toLocaleString()}</p>
+          <p><strong>Request ID:</strong> ${requestId}</p>
         </div>
         
         <p><em>Please respond to the customer within 24 hours.</em></p>
@@ -168,16 +286,19 @@ async function handleContactForm(transporter, data) {
     `
   };
 
+  // Send both emails
   await Promise.all([
-    transporter.sendMail(customerEmailOptions),
-    transporter.sendMail(businessEmailOptions)
+    sendEmailWithRetry(transporter, customerEmailOptions),
+    sendEmailWithRetry(transporter, businessEmailOptions)
   ]);
 
-  console.log('Contact form emails sent successfully');
+  log('info', 'Contact form emails sent successfully', { requestId });
 }
 
 // Handle quote requests
-async function handleQuoteRequest(transporter, data) {
+async function handleQuoteRequest(transporter, data, requestId) {
+  log('info', 'Processing quote request', { requestId, email: data.customer_email });
+  
   const { customer_name, customer_email, service_type, budget_range, timeline, project_details, company_name, phone } = data;
 
   // Email to customer
@@ -201,6 +322,7 @@ async function handleQuoteRequest(transporter, data) {
             <p><strong>Service:</strong> ${service_type}</p>
             <p><strong>Budget Range:</strong> ${budget_range}</p>
             <p><strong>Timeline:</strong> ${timeline}</p>
+            <p><strong>Request ID:</strong> ${requestId}</p>
           </div>
           
           <p><strong>What happens next?</strong></p>
@@ -246,6 +368,7 @@ async function handleQuoteRequest(transporter, data) {
           <p>${project_details}</p>
           
           <p><strong>Submitted:</strong> ${new Date().toLocaleString()}</p>
+          <p><strong>Request ID:</strong> ${requestId}</p>
         </div>
         
         <p><em>Please review and prepare the quote.</em></p>
@@ -254,15 +377,17 @@ async function handleQuoteRequest(transporter, data) {
   };
 
   await Promise.all([
-    transporter.sendMail(customerEmailOptions),
-    transporter.sendMail(businessEmailOptions)
+    sendEmailWithRetry(transporter, customerEmailOptions),
+    sendEmailWithRetry(transporter, businessEmailOptions)
   ]);
 
-  console.log('Quote request emails sent successfully');
+  log('info', 'Quote request emails sent successfully', { requestId });
 }
 
 // Handle welcome emails
-async function handleWelcomeEmail(transporter, data) {
+async function handleWelcomeEmail(transporter, data, requestId) {
+  log('info', 'Processing welcome email', { requestId, email: data.clientEmail });
+  
   const { clientName, clientEmail, loginUrl } = data;
 
   const emailOptions = {
@@ -301,12 +426,14 @@ async function handleWelcomeEmail(transporter, data) {
     `
   };
 
-  await transporter.sendMail(emailOptions);
-  console.log('Welcome email sent successfully');
+  await sendEmailWithRetry(transporter, emailOptions);
+  log('info', 'Welcome email sent successfully', { requestId });
 }
 
 // Handle payment confirmation emails
-async function handlePaymentConfirmation(transporter, data) {
+async function handlePaymentConfirmation(transporter, data, requestId) {
+  log('info', 'Processing payment confirmation email', { requestId, email: data.clientEmail });
+  
   const { clientName, clientEmail, serviceName, packageType, orderId, amount } = data;
 
   const emailOptions = {
@@ -331,6 +458,7 @@ async function handlePaymentConfirmation(transporter, data) {
             <p><strong>Order ID:</strong> ${orderId}</p>
             <p><strong>Amount:</strong> $${amount}</p>
             <p><strong>Payment Date:</strong> ${new Date().toLocaleDateString()}</p>
+            <p><strong>Request ID:</strong> ${requestId}</p>
           </div>
           
           <div style="background: #e0f2fe; padding: 20px; border-radius: 8px; margin: 20px 0;">
@@ -352,6 +480,6 @@ async function handlePaymentConfirmation(transporter, data) {
     `
   };
 
-  await transporter.sendMail(emailOptions);
-  console.log('Payment confirmation email sent successfully');
+  await sendEmailWithRetry(transporter, emailOptions);
+  log('info', 'Payment confirmation email sent successfully', { requestId });
 }
