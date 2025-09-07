@@ -136,6 +136,13 @@ exports.handler = async (event, context) => {
     }
 
     const { type, data } = requestData;
+    
+    // Handle missing type - default to contact_form for backward compatibility
+    const emailType = type || 'contact_form';
+    log('info', 'Email type determined', { originalType: type, emailType, hasData: !!data });
+    
+    // If no data provided, treat the entire requestData as the email data
+    const emailData = data || requestData;
 
     // Validate email credentials
     if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
@@ -151,21 +158,26 @@ exports.handler = async (event, context) => {
     await verifyEmailConfig(transporter);
 
     // Route to appropriate handler
-    switch (type) {
+    switch (emailType) {
       case 'contact_form':
-        await handleContactForm(transporter, data, requestId);
+        await handleContactForm(transporter, emailData, requestId);
         break;
       case 'quote_request':
-        await handleQuoteRequest(transporter, data, requestId);
+        await handleQuoteRequest(transporter, emailData, requestId);
         break;
       case 'welcome_email':
-        await handleWelcomeEmail(transporter, data, requestId);
+        await handleWelcomeEmail(transporter, emailData, requestId);
         break;
       case 'payment_confirmation':
-        await handlePaymentConfirmation(transporter, data, requestId);
+        await handlePaymentConfirmation(transporter, emailData, requestId);
+        break;
+      case 'test':
+        await handleTestEmail(transporter, emailData, requestId);
         break;
       default:
-        throw new Error(`Invalid email type: ${type}`);
+        // Default to contact form if type is not recognized
+        log('warning', 'Unknown email type, defaulting to contact_form', { emailType });
+        await handleContactForm(transporter, emailData, requestId);
     }
 
     log('info', 'Email function completed successfully', { requestId });
@@ -213,6 +225,44 @@ exports.handler = async (event, context) => {
   }
 };
 
+// Handle test emails
+async function handleTestEmail(transporter, data, requestId) {
+  log('info', 'Processing test email', { requestId });
+  
+  const emailOptions = {
+    from: process.env.EMAIL_USER,
+    to: process.env.EMAIL_USER, // Send to self for testing
+    subject: 'Test Email from Mechinweb - Email Service Working',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: linear-gradient(135deg, #10B981, #059669); padding: 30px; text-align: center;">
+          <h1 style="color: white; margin: 0;">Email Service Test</h1>
+        </div>
+        
+        <div style="padding: 30px; background: #f8f9fa;">
+          <p>This is a test email to verify that the Mechinweb email service is working correctly.</p>
+          
+          <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="color: #10B981; margin-top: 0;">Test Details:</h3>
+            <p><strong>Timestamp:</strong> ${new Date().toISOString()}</p>
+            <p><strong>From:</strong> ${process.env.EMAIL_USER}</p>
+            <p><strong>Request ID:</strong> ${requestId}</p>
+            <p><strong>Status:</strong> ✅ Working</p>
+          </div>
+          
+          <p>If you received this email, the email service is configured correctly!</p>
+          
+          <p>Best regards,<br>
+          Mechinweb Email Service</p>
+        </div>
+      </div>
+    `
+  };
+
+  await sendEmailWithRetry(transporter, emailOptions);
+  log('info', 'Test email sent successfully', { requestId });
+}
+
 // Handle contact form submissions
 async function handleContactForm(transporter, data, requestId) {
   log('info', 'Processing contact form', { requestId, email: data.email });
@@ -221,7 +271,14 @@ async function handleContactForm(transporter, data, requestId) {
 
   // Validate required fields
   if (!name || !email || !subject || !message) {
-    throw new Error('Missing required fields: name, email, subject, message');
+    log('warning', 'Missing required fields for contact form', { 
+      hasName: !!name, 
+      hasEmail: !!email, 
+      hasSubject: !!subject, 
+      hasMessage: !!message,
+      receivedData: data
+    });
+    throw new Error(`Missing required fields. Received: ${Object.keys(data).join(', ')}`);
   }
 
   // Email to customer (confirmation)
