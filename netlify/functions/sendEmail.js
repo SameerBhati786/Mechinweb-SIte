@@ -28,8 +28,8 @@ const createEmailTransporter = () => {
     tls: {
       rejectUnauthorized: false
     },
-    debug: true, // Enable debug logging
-    logger: true // Enable logger
+    debug: false, // Disable debug to reduce logs
+    logger: false // Disable logger to reduce logs
   };
 
   log('info', 'Email config', {
@@ -56,7 +56,7 @@ const verifyEmailConfig = async (transporter) => {
 };
 
 // Enhanced email sending with retry logic
-const sendEmailWithRetry = async (transporter, emailOptions, maxRetries = 3) => {
+const sendEmailWithRetry = async (transporter, emailOptions, maxRetries = 2) => {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       log('info', `Sending email attempt ${attempt}/${maxRetries}`, {
@@ -90,8 +90,7 @@ exports.handler = async (event, context) => {
   log('info', 'Function invoked', {
     requestId,
     method: event.httpMethod,
-    path: event.path,
-    headers: event.headers
+    path: event.path
   });
 
   // Handle CORS preflight
@@ -206,7 +205,8 @@ exports.handler = async (event, context) => {
         debug: {
           hasEmailUser: !!process.env.EMAIL_USER,
           hasEmailPassword: !!process.env.EMAIL_PASSWORD,
-          emailUser: process.env.EMAIL_USER
+          emailUser: process.env.EMAIL_USER,
+          nodeVersion: process.version
         }
       })
     };
