@@ -40,8 +40,8 @@ exports.handler = async (event, context) => {
   try {
     console.log('Creating nodemailer transporter...');
     
-    // Create the transporter with correct method name
-    const transporter = nodemailer.createTransporter({
+    // Create the transporter
+    const transporter = nodemailer.createTransport({
       host: 'smtp.zoho.in',
       port: 587,
       secure: false,

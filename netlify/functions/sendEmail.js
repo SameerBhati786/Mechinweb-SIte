@@ -39,7 +39,7 @@ const createEmailTransporter = () => {
     hasPassword: !!config.auth.pass
   });
 
-  return nodemailer.createTransporter(config);
+  return nodemailer.createTransport(config);
 };
 
 // Verify email configuration

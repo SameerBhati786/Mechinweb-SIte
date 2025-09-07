@@ -15,7 +15,7 @@ const ZOHO_CONFIG = {
 };
 
 // Email Configuration
-const emailTransporter = nodemailer.createTransporter({
+const emailTransporter = nodemailer.createTransport({
   host: 'smtp.zoho.in',
   port: 587,
   secure: false, // true for 465, false for other ports
