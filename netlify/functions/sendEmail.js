@@ -174,6 +174,9 @@ exports.handler = async (event, context) => {
       case 'test':
         await handleTestEmail(transporter, emailData, requestId);
         break;
+      case 'registration_welcome':
+        await handleRegistrationWelcome(transporter, emailData, requestId);
+        break;
       default:
         // Default to contact form if type is not recognized
         log('warning', 'Unknown email type, defaulting to contact_form', { emailType });
@@ -539,4 +542,58 @@ async function handlePaymentConfirmation(transporter, data, requestId) {
 
   await sendEmailWithRetry(transporter, emailOptions);
   log('info', 'Payment confirmation email sent successfully', { requestId });
+}
+
+// Handle registration welcome emails
+async function handleRegistrationWelcome(transporter, data, requestId) {
+  log('info', 'Processing registration welcome email', { requestId, email: data.email });
+  
+  const { name, email, verificationRequired } = data;
+
+  const emailOptions = {
+    from: process.env.EMAIL_USER,
+    to: email,
+    subject: 'Welcome to Mechinweb - Please Verify Your Email',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: linear-gradient(135deg, #3B82F6, #1E40AF); padding: 30px; text-align: center;">
+          <h1 style="color: white; margin: 0;">Welcome to Mechinweb!</h1>
+        </div>
+        
+        <div style="padding: 30px; background: #f8f9fa;">
+          <p>Dear ${name},</p>
+          
+          <p>Thank you for registering with Mechinweb! To complete your account setup and access our services, please verify your email address.</p>
+          
+          <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="color: #3B82F6; margin-top: 0;">Next Steps:</h3>
+            <ol>
+              <li>Check your email inbox for a verification link from Supabase</li>
+              <li>Click the verification link to confirm your email</li>
+              <li>Return to our website and log in to access your dashboard</li>
+            </ol>
+          </div>
+          
+          <div style="background: #e3f2fd; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="color: #1976d2; margin-top: 0;">What you'll get access to:</h3>
+            <ul>
+              <li>Professional IT services dashboard</li>
+              <li>Order tracking and management</li>
+              <li>Invoice downloads and payment history</li>
+              <li>24/7 customer support</li>
+            </ul>
+          </div>
+          
+          <p>If you don't see the verification email, please check your spam folder.</p>
+          
+          <p>For any questions, contact us at contact@mechinweb.com</p>
+          
+          <p>Best regards,<br>
+          The Mechinweb Team</p>
+        </div>
+      </div>
+    `
+  };
+  await sendEmailWithRetry(transporter, emailOptions);
+  log('info', 'Registration welcome email sent successfully', { requestId });
 }

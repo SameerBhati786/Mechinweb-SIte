@@ -91,6 +91,26 @@ const ClientRegister = () => {
 
       if (authData.user && !authData.user.email_confirmed_at) {
         // User needs to verify email
+        // Send welcome email notification
+        try {
+          await fetch('/.netlify/functions/sendEmail', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              type: 'registration_welcome',
+              data: {
+                name: formData.name,
+                email: formData.email,
+                verificationRequired: true
+              }
+            })
+          });
+        } catch (emailError) {
+          console.error('Failed to send welcome email:', emailError);
+        }
+        
         navigate('/client/verify-email', { 
           state: { 
             email: formData.email,

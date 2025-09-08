@@ -89,19 +89,15 @@ export class PaymentService {
       if (orderError) throw orderError;
 
       // Call Netlify function to create Zoho invoice
-      const response = await fetch('/.netlify/functions/createPayment', {
+      const response = await fetch('/.netlify/functions/zohoIntegration', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          customerData: {
-            name: client.name,
-            email: client.email,
-            phone: client.phone,
-            company: client.company
-          },
+          customerId: null, // Will be created
           serviceItems: [{
+            serviceId: serviceId,
             serviceName: service.name,
             packageType,
             quantity,
@@ -109,7 +105,13 @@ export class PaymentService {
             totalPrice: usdAmount
           }],
           currency: targetCurrency,
-          notes: `Order ID: ${order.id}\nService: ${service.name}\nPackage: ${packageType}`
+          notes: `Order ID: ${order.id}\nService: ${service.name}\nPackage: ${packageType}`,
+          customerData: {
+            name: client.name,
+            email: client.email,
+            phone: client.phone,
+            company: client.company
+          }
         })
       });
 

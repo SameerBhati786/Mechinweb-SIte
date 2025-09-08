@@ -77,7 +77,12 @@ const ClientLogin = () => {
       if (data.user) {
         // Check if email is verified
         if (!data.user.email_confirmed_at) {
-          setErrors({ general: 'Please verify your email before logging in. Check your inbox for the verification link.' });
+          navigate('/client/verify-email', {
+            state: {
+              email: formData.email,
+              userData: { name: data.user.user_metadata?.name || 'User' }
+            }
+          });
           return;
         }
 

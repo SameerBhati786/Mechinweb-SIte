@@ -36,8 +36,33 @@ const DashboardLayout = () => {
       
       // Check if email is verified
       if (!user.email_confirmed_at) {
-        navigate('/client/verify-email');
+        navigate('/client/verify-email', {
+          state: {
+            email: user.email,
+            userData: { name: user.user_metadata?.name || 'User' }
+          }
+        });
         return;
+      }
+      
+      // Check if client profile exists
+      const { data: clientProfile } = await supabase
+        .from('clients')
+        .select('id')
+        .eq('id', user.id)
+        .maybeSingle();
+      
+      if (!clientProfile) {
+        // Create client profile for verified user
+        await supabase
+          .from('clients')
+          .insert([{
+            id: user.id,
+            name: user.user_metadata?.name || user.email?.split('@')[0] || 'User',
+            email: user.email,
+            email_verified: true,
+            email_verified_at: user.email_confirmed_at
+          }]);
       }
       
       setUser(user);
