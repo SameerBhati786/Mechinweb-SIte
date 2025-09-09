@@ -63,13 +63,11 @@ const Contact = () => {
         },
         body: JSON.stringify({
           type: 'contact_form',
-          data: {
-            name: formData.name,
-            email: formData.email,
-            subject: formData.subject,
-            message: formData.message,
-            timestamp: new Date().toISOString()
-          }
+          name: formData.name,
+          email: formData.email,
+          subject: formData.subject,
+          message: formData.message,
+          timestamp: new Date().toISOString()
         })
       });
 

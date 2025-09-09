@@ -128,21 +128,42 @@ exports.handler = async (event, context) => {
     // Parse request body
     let requestData;
     try {
-      requestData = JSON.parse(event.body || '{}');
+      if (!event.body) {
+        log('warning', 'No request body provided');
+        throw new Error('Request body is required');
+      }
+      
+      requestData = JSON.parse(event.body);
       log('info', 'Request data parsed', { type: requestData.type });
     } catch (parseError) {
       log('error', 'Failed to parse request body', parseError);
-      throw new Error('Invalid JSON in request body');
+      throw new Error(`Invalid JSON in request body: ${parseError.message}`);
     }
 
     const { type, data } = requestData;
     
     // Handle missing type - default to contact_form for backward compatibility
     const emailType = type || 'contact_form';
-    log('info', 'Email type determined', { originalType: type, emailType, hasData: !!data });
+    log('info', 'Email type determined', { 
+      originalType: type, 
+      emailType, 
+      hasData: !!data,
+      requestDataKeys: Object.keys(requestData),
+      fullRequestData: requestData
+    });
     
     // If no data provided, treat the entire requestData as the email data
     const emailData = data || requestData;
+    
+    log('info', 'Email data prepared', {
+      emailDataKeys: Object.keys(emailData),
+      emailDataSample: {
+        name: emailData.name,
+        email: emailData.email,
+        subject: emailData.subject,
+        hasMessage: !!emailData.message
+      }
+    });
 
     // Validate email credentials
     if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
@@ -268,7 +289,17 @@ async function handleTestEmail(transporter, data, requestId) {
 
 // Handle contact form submissions
 async function handleContactForm(transporter, data, requestId) {
-  log('info', 'Processing contact form', { requestId, email: data.email });
+  log('info', 'Processing contact form', { 
+    requestId, 
+    email: data.email,
+    dataKeys: Object.keys(data),
+    hasRequiredFields: {
+      name: !!data.name,
+      email: !!data.email,
+      subject: !!data.subject,
+      message: !!data.message
+    }
+  });
   
   const { name, email, subject, message } = data;
 
@@ -279,9 +310,17 @@ async function handleContactForm(transporter, data, requestId) {
       hasEmail: !!email, 
       hasSubject: !!subject, 
       hasMessage: !!message,
-      receivedData: data
+      receivedData: data,
+      receivedDataString: JSON.stringify(data)
     });
-    throw new Error(`Missing required fields. Received: ${Object.keys(data).join(', ')}`);
+    
+    const missingFields = [];
+    if (!name) missingFields.push('name');
+    if (!email) missingFields.push('email');
+    if (!subject) missingFields.push('subject');
+    if (!message) missingFields.push('message');
+    
+    throw new Error(`Missing required fields: ${missingFields.join(', ')}. Please provide all required contact form fields.`);
   }
 
   // Email to customer (confirmation)
@@ -546,9 +585,23 @@ async function handlePaymentConfirmation(transporter, data, requestId) {
 
 // Handle registration welcome emails
 async function handleRegistrationWelcome(transporter, data, requestId) {
-  log('info', 'Processing registration welcome email', { requestId, email: data.email });
+  log('info', 'Processing registration welcome email', { 
+    requestId, 
+    email: data.email,
+    dataKeys: Object.keys(data)
+  });
   
   const { name, email, verificationRequired } = data;
+  
+  // Validate required fields
+  if (!name || !email) {
+    log('warning', 'Missing required fields for registration welcome', {
+      hasName: !!name,
+      hasEmail: !!email,
+      receivedData: data
+    });
+    throw new Error('Missing required fields: name and email are required for registration welcome email');
+  }
 
   const emailOptions = {
     from: process.env.EMAIL_USER,
