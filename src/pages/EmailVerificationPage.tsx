@@ -13,6 +13,7 @@ export default function EmailVerificationPage() {
   
   const email = location.state?.email || ''
   const userData = location.state?.userData || {}
+  const emailSent = location.state?.emailSent || false
 
   useEffect(() => {
     // Check if user is already verified
@@ -183,6 +184,11 @@ export default function EmailVerificationPage() {
               <p className="font-semibold text-cyan-400 mt-2">
                 {email}
               </p>
+              {emailSent && (
+                <div className="mt-4 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
+                  <p className="text-green-400 text-sm">✓ Verification email sent successfully!</p>
+                </div>
+              )}
             </div>
 
             <div className="space-y-6">
@@ -190,8 +196,9 @@ export default function EmailVerificationPage() {
                 <div className="flex items-start">
                   <AlertCircle className="w-5 h-5 text-blue-400 mt-0.5 mr-3 flex-shrink-0" />
                   <div className="text-sm text-blue-300">
-                    <p className="font-medium mb-1">Check your email</p>
-                    <p>Click the verification link in your email to activate your account and access the dashboard.</p>
+                    <p className="font-medium mb-1">Check your email inbox</p>
+                    <p>We've sent you a verification email with instructions. Click the verification link in the email to activate your account.</p>
+                    <p className="mt-2 text-blue-200">Note: Check your spam/junk folder if you don't see the email.</p>
                   </div>
                 </div>
               </div>

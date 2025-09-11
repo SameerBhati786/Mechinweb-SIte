@@ -591,7 +591,7 @@ async function handleRegistrationWelcome(transporter, data, requestId) {
     dataKeys: Object.keys(data)
   });
   
-  const { name, email, verificationRequired } = data;
+  const { name, email, verificationRequired, loginUrl, supportEmail } = data;
   
   // Validate required fields
   if (!name || !email) {
@@ -606,40 +606,54 @@ async function handleRegistrationWelcome(transporter, data, requestId) {
   const emailOptions = {
     from: process.env.EMAIL_USER,
     to: email,
-    subject: 'Welcome to Mechinweb - Please Verify Your Email',
+    subject: 'Welcome to Mechinweb - Email Verification Required',
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="background: linear-gradient(135deg, #3B82F6, #1E40AF); padding: 30px; text-align: center;">
-          <h1 style="color: white; margin: 0;">Welcome to Mechinweb!</h1>
+          <h1 style="color: white; margin: 0;">Welcome to Mechinweb, ${name}!</h1>
         </div>
         
         <div style="padding: 30px; background: #f8f9fa;">
           <p>Dear ${name},</p>
           
-          <p>Thank you for registering with Mechinweb! To complete your account setup and access our services, please verify your email address.</p>
+          <p>Thank you for registering with Mechinweb! Your account has been created successfully.</p>
           
-          <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
-            <h3 style="color: #3B82F6; margin-top: 0;">Next Steps:</h3>
-            <ol>
-              <li>Check your email inbox for a verification link from Supabase</li>
-              <li>Click the verification link to confirm your email</li>
-              <li>Return to our website and log in to access your dashboard</li>
-            </ol>
+          <div style="background: #e3f2fd; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #2196f3;">
+            <h3 style="color: #1976d2; margin-top: 0;">⚠️ Important: Email Verification Required</h3>
+            <p style="margin: 0;">To access your dashboard and purchase services, you must verify your email address first.</p>
           </div>
           
-          <div style="background: #e3f2fd; padding: 20px; border-radius: 8px; margin: 20px 0;">
-            <h3 style="color: #1976d2; margin-top: 0;">What you'll get access to:</h3>
+          <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="color: #3B82F6; margin-top: 0;">How to Verify Your Email:</h3>
+            <ol>
+              <li><strong>Check your email inbox</strong> for a verification email from Supabase (our authentication provider)</li>
+              <li><strong>Click the verification link</strong> in that email to confirm your email address</li>
+              <li><strong>Return to our website</strong> and log in to access your dashboard</li>
+            </ol>
+            <p style="margin-top: 15px; padding: 10px; background: #fff3cd; border-radius: 4px; color: #856404;">
+              <strong>Note:</strong> If you don't see the verification email, please check your spam/junk folder.
+            </p>
+          </div>
+          
+          <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="color: #3B82F6; margin-top: 0;">What you'll get access to after verification:</h3>
             <ul>
               <li>Professional IT services dashboard</li>
               <li>Order tracking and management</li>
               <li>Invoice downloads and payment history</li>
               <li>24/7 customer support</li>
+              <li>Real-time order status updates</li>
             </ul>
           </div>
           
-          <p>If you don't see the verification email, please check your spam folder.</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${loginUrl || 'https://mechinweb.com/client/login'}" 
+               style="background: linear-gradient(135deg, #3B82F6, #1E40AF); color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+              Go to Login Page
+            </a>
+          </div>
           
-          <p>For any questions, contact us at contact@mechinweb.com</p>
+          <p>If you have any questions or need assistance with verification, please contact us at ${supportEmail || 'contact@mechinweb.com'}</p>
           
           <p>Best regards,<br>
           The Mechinweb Team</p>
@@ -647,6 +661,7 @@ async function handleRegistrationWelcome(transporter, data, requestId) {
       </div>
     `
   };
+  
   await sendEmailWithRetry(transporter, emailOptions);
   log('info', 'Registration welcome email sent successfully', { requestId });
 }

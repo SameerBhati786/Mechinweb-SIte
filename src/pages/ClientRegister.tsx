@@ -4,7 +4,6 @@ import { ArrowLeft, Mail, Lock, User, Phone, Eye, EyeOff } from 'lucide-react';
 import PasswordStrengthIndicator from '../components/PasswordStrengthIndicator';
 import { supabase } from '../lib/supabase';
 import { validateEmail, validatePassword, validatePhone } from '../utils/validation';
-import { EmailService } from '../lib/email';
 
 const ClientRegister = () => {
   const navigate = useNavigate();
@@ -18,6 +17,7 @@ const ClientRegister = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [emailSent, setEmailSent] = useState(false);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -64,6 +64,8 @@ const ClientRegister = () => {
     setErrors({});
 
     try {
+      console.log('Starting registration process for:', formData.email);
+      
       // Register user with Supabase Auth
       const { data: authData, error } = await supabase.auth.signUp({
         email: formData.email,
@@ -72,7 +74,9 @@ const ClientRegister = () => {
           data: {
             name: formData.name,
           },
-          emailRedirectTo: `${window.location.origin}/client/login?verified=true`
+          emailRedirectTo: `${window.location.origin}/client/login?verified=true`,
+          // Disable Supabase's default email confirmation
+          shouldCreateUser: true
         }
       });
 
@@ -89,37 +93,51 @@ const ClientRegister = () => {
         return;
       }
 
-      if (authData.user && !authData.user.email_confirmed_at) {
-        // User needs to verify email
-        // Send welcome email notification
+      if (authData.user) {
+        console.log('User registered successfully:', authData.user.id);
+        
+        // Send custom verification email through our Netlify function
         try {
-          await fetch('/.netlify/functions/sendEmail', {
+          console.log('Sending custom verification email...');
+          
+          const emailResponse = await fetch('/.netlify/functions/sendEmail', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({
               type: 'registration_welcome',
-              data: {
-                name: formData.name,
-                email: formData.email,
-                verificationRequired: true
-              }
+              name: formData.name,
+              email: formData.email,
+              verificationRequired: true,
+              loginUrl: `${window.location.origin}/client/login`,
+              supportEmail: 'contact@mechinweb.com'
             })
           });
+
+          if (!emailResponse.ok) {
+            const errorData = await emailResponse.text();
+            console.error('Email sending failed:', errorData);
+            throw new Error('Failed to send verification email');
+          }
+
+          const emailResult = await emailResponse.json();
+          console.log('Verification email sent successfully:', emailResult);
+          setEmailSent(true);
+          
         } catch (emailError) {
-          console.error('Failed to send welcome email:', emailError);
+          console.error('Failed to send verification email:', emailError);
+          // Continue with registration even if email fails
         }
         
+        // Always redirect to verification page for new registrations
         navigate('/client/verify-email', { 
           state: { 
             email: formData.email,
-            userData: { name: formData.name }
+            userData: { name: formData.name },
+            emailSent: true
           }
         });
-      } else {
-        // Email already verified or auto-confirmed
-        navigate('/thank-you?type=registration&email=' + encodeURIComponent(formData.email) + '&name=' + encodeURIComponent(formData.name));
       }
       
     } catch (err) {
