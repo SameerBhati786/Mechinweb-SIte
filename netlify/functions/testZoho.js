@@ -62,7 +62,7 @@ exports.handler = async (event, context) => {
     // Test Zoho API connection
     console.log('Testing Zoho API connection...');
     
-    const tokenResponse = await axios.post('https://accounts.zoho.com/oauth/v2/token', null, {
+    const tokenResponse = await axios.post('https://accounts.zoho.in/oauth/v2/token', null, {
       params: {
         refresh_token: zohoConfig.refreshToken,
         client_id: zohoConfig.clientId,
@@ -81,7 +81,7 @@ exports.handler = async (event, context) => {
     // Test API call with the token
     const accessToken = tokenResponse.data.access_token;
     
-    const apiTestResponse = await axios.get('https://invoice.zoho.com/api/v3/contacts', {
+    const apiTestResponse = await axios.get('https://invoice.zoho.in/api/v3/contacts', {
       headers: {
         'Authorization': `Zoho-oauthtoken ${accessToken}`,
         'X-com-zoho-invoice-organizationid': zohoConfig.organizationId
