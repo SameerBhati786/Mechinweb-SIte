@@ -95,7 +95,12 @@ export class PaymentService {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          customerId: null, // Will be created
+          customerData: {
+            name: client.name,
+            email: client.email,
+            phone: client.phone,
+            company: client.company
+          },
           serviceItems: [{
             serviceId: serviceId,
             serviceName: service.name,
@@ -105,30 +110,31 @@ export class PaymentService {
             totalPrice: usdAmount
           }],
           currency: targetCurrency,
-          notes: `Order ID: ${order.id}\nService: ${service.name}\nPackage: ${packageType}`,
-          customerData: {
-            name: client.name,
-            email: client.email,
-            phone: client.phone,
-            company: client.company
-          }
+          notes: `Order ID: ${order.id}\nService: ${service.name}\nPackage: ${packageType}\nCurrency: ${targetCurrency}`
         })
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorText = await response.text();
+        console.error('Zoho integration failed:', errorText);
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { error: errorText };
+        }
         throw new Error(`Payment creation failed: ${errorData.error}`);
       }
 
       const paymentData = await response.json();
-      const zohoInvoice = paymentData.invoice;
+      const zohoInvoice = paymentData.invoice || paymentData;
 
       // Update order with Zoho invoice ID
       await supabase
         .from('orders')
         .update({
-          zoho_invoice_id: zohoInvoice.invoice_id,
-          zoho_customer_id: zohoInvoice.customer_id,
+          zoho_invoice_id: zohoInvoice.invoice_id || paymentData.customer?.contact_id,
+          zoho_customer_id: paymentData.customer?.contact_id,
           updated_at: new Date().toISOString()
         })
         .eq('id', order.id);

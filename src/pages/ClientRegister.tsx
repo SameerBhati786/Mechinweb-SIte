@@ -96,7 +96,7 @@ const ClientRegister = () => {
       if (authData.user) {
         console.log('User registered successfully:', authData.user.id);
         
-        // Send custom verification email through our Netlify function
+        // Send custom welcome email with verification instructions
         try {
           console.log('Sending custom verification email...');
           
@@ -109,33 +109,37 @@ const ClientRegister = () => {
               type: 'registration_welcome',
               name: formData.name,
               email: formData.email,
-              verificationRequired: true,
               loginUrl: `${window.location.origin}/client/login`,
-              supportEmail: 'contact@mechinweb.com'
+              dashboardUrl: `${window.location.origin}/client/dashboard`,
+              supportEmail: 'contact@mechinweb.com',
+              verificationInstructions: 'Please check your email for a verification link from Supabase to activate your account.',
+              timestamp: new Date().toISOString()
             })
           });
 
           if (!emailResponse.ok) {
             const errorData = await emailResponse.text();
             console.error('Email sending failed:', errorData);
-            throw new Error('Failed to send verification email');
+            console.warn('Welcome email failed, but registration continues');
           }
 
-          const emailResult = await emailResponse.json();
-          console.log('Verification email sent successfully:', emailResult);
-          setEmailSent(true);
+          if (emailResponse.ok) {
+            const emailResult = await emailResponse.json();
+            console.log('Welcome email sent successfully:', emailResult);
+            setEmailSent(true);
+          }
           
         } catch (emailError) {
-          console.error('Failed to send verification email:', emailError);
+          console.error('Failed to send welcome email:', emailError);
           // Continue with registration even if email fails
         }
         
-        // Always redirect to verification page for new registrations
+        // Redirect to verification page
         navigate('/client/verify-email', { 
           state: { 
             email: formData.email,
             userData: { name: formData.name },
-            emailSent: true
+            emailSent: emailSent
           }
         });
       }
