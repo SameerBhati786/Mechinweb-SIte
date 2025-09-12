@@ -12,7 +12,7 @@ const ZOHO_CONFIG = {
   clientSecret: process.env.ZOHO_CLIENT_SECRET,
   refreshToken: process.env.ZOHO_REFRESH_TOKEN,
   organizationId: process.env.ZOHO_ORGANIZATION_ID,
-  baseUrl: 'https://invoice.zoho.com/api/v3'
+  baseUrl: 'https://invoice.zoho.in/api/v3'
 };
 
 // Validate Zoho configuration
@@ -40,7 +40,7 @@ const getZohoAccessToken = async () => {
   try {
     log('info', 'Requesting Zoho access token...');
     
-    const response = await axios.post('https://accounts.zoho.com/oauth/v2/token', null, {
+    const response = await axios.post('https://accounts.zoho.in/oauth/v2/token', null, {
       params: {
         refresh_token: ZOHO_CONFIG.refreshToken,
         client_id: ZOHO_CONFIG.clientId,
@@ -205,7 +205,7 @@ const createZohoInvoice = async (accessToken, customerId, invoiceData) => {
     return {
       invoice_id: invoice.invoice_id,
       invoice_number: invoice.invoice_number,
-      payment_url: `https://invoice.zoho.com/invoices/${invoice.invoice_id}/payment`,
+      payment_url: `https://invoice.zoho.in/invoices/${invoice.invoice_id}/payment`,
       total: invoice.total,
       status: invoice.status,
       customer_id: customerId
