@@ -588,11 +588,10 @@ async function handleRegistrationWelcome(transporter, data, requestId) {
   log('info', 'Processing registration welcome email', { 
     requestId, 
     email: data.email,
-    dataKeys: Object.keys(data),
-    hasVerificationInstructions: !!data.verificationInstructions
+    dataKeys: Object.keys(data)
   });
   
-  const { name, email, loginUrl, dashboardUrl, supportEmail, verificationInstructions } = data;
+  const { name, email, loginUrl, supportEmail, verificationRequired } = data;
   
   // Validate required fields
   if (!name || !email) {
@@ -607,7 +606,7 @@ async function handleRegistrationWelcome(transporter, data, requestId) {
   const emailOptions = {
     from: process.env.EMAIL_USER,
     to: email,
-    subject: 'Welcome to Mechinweb - Email Verification Required',
+    subject: 'Welcome to Mechinweb - Please Verify Your Email',
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="background: linear-gradient(135deg, #3B82F6, #1E40AF); padding: 30px; text-align: center;">
@@ -619,21 +618,28 @@ async function handleRegistrationWelcome(transporter, data, requestId) {
           
           <p>Thank you for registering with Mechinweb! Your account has been created successfully.</p>
           
-          <div style="background: #e3f2fd; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #2196f3;">
-            <h3 style="color: #1976d2; margin-top: 0;">⚠️ Important: Email Verification Required</h3>
-            <p style="margin: 0;">${verificationInstructions || 'To access your dashboard and purchase services, you must verify your email address first.'}</p>
-          </div>
+          ${verificationRequired ? `
+            <div style="background: #e3f2fd; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #2196f3;">
+              <h3 style="color: #1976d2; margin-top: 0;">⚠️ Important: Email Verification Required</h3>
+              <p style="margin: 0;">To access your dashboard and purchase services, you must verify your email address first.</p>
+            </div>
+          ` : ''}
           
           <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
-            <h3 style="color: #3B82F6; margin-top: 0;">How to Verify Your Email:</h3>
-            <ol>
-              <li><strong>Check your email inbox</strong> for a verification email from Supabase</li>
-              <li><strong>Click the verification link</strong> in that email to confirm your email address</li>
-              <li><strong>Return to our website</strong> and log in to access your dashboard</li>
-            </ol>
-            <p style="margin-top: 15px; padding: 10px; background: #fff3cd; border-radius: 4px; color: #856404;">
-              <strong>Note:</strong> If you don't see the verification email, please check your spam/junk folder.
-            </p>
+            ${verificationRequired ? `
+              <h3 style="color: #3B82F6; margin-top: 0;">How to Verify Your Email:</h3>
+              <ol>
+                <li><strong>Check your email inbox</strong> for a verification email from Supabase</li>
+                <li><strong>Click the verification link</strong> in that email to confirm your email address</li>
+                <li><strong>Return to our website</strong> and log in to access your dashboard</li>
+              </ol>
+              <p style="margin-top: 15px; padding: 10px; background: #fff3cd; border-radius: 4px; color: #856404;">
+                <strong>Note:</strong> If you don't see the verification email, please check your spam/junk folder.
+              </p>
+            ` : `
+              <h3 style="color: #3B82F6; margin-top: 0;">Your Account is Ready!</h3>
+              <p>You can now log in and start using our services.</p>
+            `}
           </div>
           
           <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
@@ -650,18 +656,11 @@ async function handleRegistrationWelcome(transporter, data, requestId) {
           <div style="text-align: center; margin: 30px 0;">
             <a href="${loginUrl}" 
                style="background: linear-gradient(135deg, #3B82F6, #1E40AF); color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
-              Go to Login Page
+              ${verificationRequired ? 'Go to Login Page (After Verification)' : 'Login to Your Account'}
             </a>
-            ${dashboardUrl ? `
-            <br><br>
-            <a href="${dashboardUrl}" 
-               style="background: linear-gradient(135deg, #10B981, #059669); color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
-               Access Dashboard (After Verification)
-            </a>
-            ` : ''}
           </div>
           
-          <p>If you have any questions or need assistance with verification, please contact us at ${supportEmail}</p>
+          <p>If you have any questions or need assistance${verificationRequired ? ' with verification' : ''}, please contact us at ${supportEmail || 'contact@mechinweb.com'}</p>
           
           <p>Best regards,<br>
           The Mechinweb Team</p>

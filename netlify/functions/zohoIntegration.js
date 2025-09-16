@@ -1,9 +1,255 @@
-st response = await axios.get(
+const axios = require('axios');
+
+// Enhanced logging function
+const log = (level, message, data = null) => {
+  const timestamp = new Date().toISOString();
+  console.log(`[${timestamp}] ${level.toUpperCase()}: ${message}`, data || '');
+};
+
+// Zoho configuration
+const ZOHO_CONFIG = {
+  clientId: process.env.ZOHO_CLIENT_ID,
+  clientSecret: process.env.ZOHO_CLIENT_SECRET,
+  refreshToken: process.env.ZOHO_REFRESH_TOKEN,
+  organizationId: process.env.ZOHO_ORGANIZATION_ID,
+  baseUrl: 'https://invoice.zoho.in/api/v3'
+};
+
+// Validate Zoho configuration
+const validateZohoConfig = () => {
+  const missing = [];
+  if (!ZOHO_CONFIG.clientId) missing.push('ZOHO_CLIENT_ID');
+  if (!ZOHO_CONFIG.clientSecret) missing.push('ZOHO_CLIENT_SECRET');
+  if (!ZOHO_CONFIG.refreshToken) missing.push('ZOHO_REFRESH_TOKEN');
+  if (!ZOHO_CONFIG.organizationId) missing.push('ZOHO_ORGANIZATION_ID');
+
+  if (missing.length > 0) {
+    throw new Error(`Missing Zoho configuration: ${missing.join(', ')}`);
+  }
+
+  log('info', 'Zoho configuration validated', {
+    hasClientId: !!ZOHO_CONFIG.clientId,
+    hasClientSecret: !!ZOHO_CONFIG.clientSecret,
+    hasRefreshToken: !!ZOHO_CONFIG.refreshToken,
+    hasOrgId: !!ZOHO_CONFIG.organizationId
+  });
+};
+
+// Get Zoho access token with enhanced error handling
+const getZohoAccessToken = async () => {
+  try {
+    log('info', 'Requesting Zoho access token...');
+    
+    const tokenParams = new URLSearchParams({
+      refresh_token: ZOHO_CONFIG.refreshToken,
+      client_id: ZOHO_CONFIG.clientId,
+      client_secret: ZOHO_CONFIG.clientSecret,
+      grant_type: 'refresh_token'
+    });
+
+    log('info', 'Token request params prepared', {
+      grant_type: 'refresh_token',
+      client_id: ZOHO_CONFIG.clientId,
+      hasRefreshToken: !!ZOHO_CONFIG.refreshToken,
+      hasClientSecret: !!ZOHO_CONFIG.clientSecret
+    });
+
+    const response = await axios.post(
+      'https://accounts.zoho.in/oauth/v2/token',
+      tokenParams.toString(),
+      {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        timeout: 15000
+      }
+    );
+
+    log('info', 'Token response received', {
+      status: response.status,
+      hasAccessToken: !!response.data.access_token,
+      tokenType: response.data.token_type,
+      expiresIn: response.data.expires_in,
+      scope: response.data.scope
+    });
+
+    if (!response.data.access_token) {
+      throw new Error('No access token received from Zoho');
+    }
+
+    return response.data.access_token;
+  } catch (error) {
+    log('error', 'Failed to get Zoho access token', {
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      message: error.message
+    });
+
+    if (error.response?.status === 400) {
+      throw new Error('Invalid Zoho credentials. Please check your ZOHO_CLIENT_ID, ZOHO_CLIENT_SECRET, and ZOHO_REFRESH_TOKEN.');
+    } else if (error.response?.status === 401) {
+      throw new Error('Zoho refresh token expired. Please regenerate your refresh token.');
+    }
+
+    throw new Error(`Zoho token request failed: ${error.message}`);
+  }
+};
+
+// Test Zoho API connection with proper organization validation
+const testZohoConnection = async (accessToken) => {
+  try {
+    log('info', 'Testing Zoho API connection...');
+    
+    // First test: Get organization info
+    const orgResponse = await axios.get(
+      'https://invoice.zoho.in/api/v3/organizations',
+      {
+        headers: {
+          'Authorization': `Zoho-oauthtoken ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        timeout: 15000
+      }
+    );
+
+    log('info', 'Organization API test', {
+      status: orgResponse.status,
+      organizationsCount: orgResponse.data.organizations?.length || 0,
+      organizations: orgResponse.data.organizations?.map(org => ({
+        id: org.organization_id,
+        name: org.name
+      })) || []
+    });
+
+    // Validate organization ID
+    const organizations = orgResponse.data.organizations || [];
+    const targetOrg = organizations.find(org => org.organization_id === ZOHO_CONFIG.organizationId);
+    
+    if (!targetOrg) {
+      log('error', 'Organization ID not found', {
+        providedOrgId: ZOHO_CONFIG.organizationId,
+        availableOrgs: organizations.map(org => ({
+          id: org.organization_id,
+          name: org.name
+        }))
+      });
+      throw new Error(`Organization ID ${ZOHO_CONFIG.organizationId} not found. Available organizations: ${organizations.map(org => `${org.name} (${org.organization_id})`).join(', ')}`);
+    }
+
+    log('info', 'Organization validated successfully', {
+      orgId: targetOrg.organization_id,
+      orgName: targetOrg.name
+    });
+
+    // Second test: Try to access contacts with the organization
+    const contactsResponse = await axios.get(
       `${ZOHO_CONFIG.baseUrl}/contacts`,
       {
         headers: {
           'Authorization': `Zoho-oauthtoken ${accessToken}`,
-          'X-com-zoho-invoice-organizationid': ZOHO_CONFIG.organizationId
+          'X-com-zoho-invoice-organizationid': ZOHO_CONFIG.organizationId,
+          'Content-Type': 'application/json'
+        },
+        params: {
+          per_page: 1
+        },
+        timeout: 15000
+      }
+    );
+
+    log('info', 'Contacts API test successful', {
+      status: contactsResponse.status,
+      contactsCount: contactsResponse.data.contacts?.length || 0
+    });
+
+    return true;
+  } catch (error) {
+    log('error', 'Zoho API connection test failed', {
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      message: error.message,
+      url: error.config?.url
+    });
+
+    if (error.response?.status === 401) {
+      throw new Error('Zoho API authorization failed. Please check your organization ID and API permissions.');
+    }
+
+    throw error;
+  }
+};
+
+// Create Zoho customer with enhanced error handling
+const createZohoCustomer = async (accessToken, customerData) => {
+  try {
+    log('info', 'Creating Zoho customer', { email: customerData.email });
+    
+    const customerPayload = {
+      contact_name: customerData.name,
+      company_name: customerData.company || '',
+      email: customerData.email,
+      phone: customerData.phone || ''
+    };
+
+    log('info', 'Customer payload prepared', customerPayload);
+
+    const response = await axios.post(
+      `${ZOHO_CONFIG.baseUrl}/contacts`,
+      customerPayload,
+      {
+        headers: {
+          'Authorization': `Zoho-oauthtoken ${accessToken}`,
+          'X-com-zoho-invoice-organizationid': ZOHO_CONFIG.organizationId,
+          'Content-Type': 'application/json'
+        },
+        timeout: 15000
+      }
+    );
+
+    const customer = response.data.contact;
+    log('info', 'Zoho customer created successfully', {
+      contactId: customer.contact_id,
+      contactName: customer.contact_name,
+      email: customer.email
+    });
+
+    return {
+      contact_id: customer.contact_id,
+      contact_name: customer.contact_name,
+      email: customer.email,
+      company_name: customer.company_name
+    };
+  } catch (error) {
+    log('error', 'Failed to create Zoho customer', {
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message
+    });
+
+    // If customer already exists, try to find them
+    if (error.response?.status === 400 && error.response?.data?.message?.includes('already exists')) {
+      log('info', 'Customer already exists, searching for existing customer...');
+      return await findZohoCustomer(accessToken, customerData.email);
+    }
+
+    throw new Error(`Customer creation failed: ${error.response?.data?.message || error.message}`);
+  }
+};
+
+// Find existing Zoho customer
+const findZohoCustomer = async (accessToken, email) => {
+  try {
+    log('info', 'Searching for existing Zoho customer', { email });
+    
+    const response = await axios.get(
+      `${ZOHO_CONFIG.baseUrl}/contacts`,
+      {
+        headers: {
+          'Authorization': `Zoho-oauthtoken ${accessToken}`,
+          'X-com-zoho-invoice-organizationid': ZOHO_CONFIG.organizationId,
+          'Content-Type': 'application/json'
         },
         params: {
           email: email
@@ -21,13 +267,18 @@ st response = await axios.get(
       return {
         contact_id: customer.contact_id,
         contact_name: customer.contact_name,
-        email: customer.email
+        email: customer.email,
+        company_name: customer.company_name
       };
     }
     
     throw new Error('Customer not found');
   } catch (error) {
-    log('error', 'Failed to find Zoho customer', error);
+    log('error', 'Failed to find Zoho customer', {
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message
+    });
     throw new Error(`Customer lookup failed: ${error.message}`);
   }
 };
@@ -53,8 +304,7 @@ const createZohoInvoice = async (accessToken, customerId, invoiceData) => {
       line_items: lineItems,
       notes: invoiceData.notes || 'Thank you for choosing Mechinweb!',
       terms: 'Payment due within 30 days.',
-      currency_code: invoiceData.currency,
-      is_inclusive_tax: false
+      currency_code: invoiceData.currency || 'USD'
     };
 
     log('info', 'Invoice payload prepared', {
@@ -113,7 +363,8 @@ const getZohoInvoiceStatus = async (accessToken, invoiceId) => {
       {
         headers: {
           'Authorization': `Zoho-oauthtoken ${accessToken}`,
-          'X-com-zoho-invoice-organizationid': ZOHO_CONFIG.organizationId
+          'X-com-zoho-invoice-organizationid': ZOHO_CONFIG.organizationId,
+          'Content-Type': 'application/json'
         },
         timeout: 15000
       }
@@ -132,7 +383,11 @@ const getZohoInvoiceStatus = async (accessToken, invoiceId) => {
       payment_date: invoice.last_payment_date
     };
   } catch (error) {
-    log('error', 'Failed to get invoice status', error);
+    log('error', 'Failed to get invoice status', {
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message
+    });
     throw new Error(`Invoice status check failed: ${error.message}`);
   }
 };
@@ -144,11 +399,7 @@ exports.handler = async (event, context) => {
   log('info', 'Zoho integration function invoked', {
     requestId,
     method: event.httpMethod,
-    path: event.path,
-    headers: {
-      authorization: event.headers.authorization ? 'present' : 'missing',
-      contentType: event.headers['content-type']
-    }
+    path: event.path
   });
 
   // Handle CORS preflight
@@ -168,13 +419,13 @@ exports.handler = async (event, context) => {
     // Validate Zoho configuration
     validateZohoConfig();
 
-    // Get access token first
+    // Get access token
     const accessToken = await getZohoAccessToken();
     
     // Test API connection
     await testZohoConnection(accessToken);
 
-    // Parse request body for POST requests
+    // Parse request for POST requests
     let requestData = {};
     if (event.httpMethod === 'POST' && event.body) {
       try {
@@ -192,7 +443,7 @@ exports.handler = async (event, context) => {
 
     // Handle different request types
     if (event.httpMethod === 'POST') {
-      // Handle customer creation and invoice creation in one call
+      // Handle customer creation and invoice creation
       if (requestData.customerData && requestData.serviceItems) {
         log('info', 'Processing customer creation and invoice generation');
         

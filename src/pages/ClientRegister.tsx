@@ -96,7 +96,7 @@ const ClientRegister = () => {
       if (authData.user) {
         console.log('User registered successfully:', authData.user.id);
         
-        // Send custom welcome email with verification instructions
+        // Send welcome email with verification instructions
         try {
           console.log('Sending custom verification email...');
           
@@ -109,17 +109,16 @@ const ClientRegister = () => {
               type: 'registration_welcome',
               name: formData.name,
               email: formData.email,
+              verificationRequired: true,
               loginUrl: `${window.location.origin}/client/login`,
-              dashboardUrl: `${window.location.origin}/client/dashboard`,
-              supportEmail: 'contact@mechinweb.com',
-              verificationInstructions: 'Please check your email for a verification link from Supabase to activate your account.',
-              timestamp: new Date().toISOString()
+              supportEmail: 'contact@mechinweb.com'
             })
           });
 
           if (!emailResponse.ok) {
             const errorData = await emailResponse.text();
             console.error('Email sending failed:', errorData);
+            // Don't fail registration if email fails
             console.warn('Welcome email failed, but registration continues');
           }
 
@@ -139,7 +138,7 @@ const ClientRegister = () => {
           state: { 
             email: formData.email,
             userData: { name: formData.name },
-            emailSent: emailSent
+            emailSent: true
           }
         });
       }
