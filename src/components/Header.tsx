@@ -95,7 +95,7 @@ export default function Header() {
           <nav className="hidden md:flex items-center space-x-8">
             <button
               onClick={() => scrollToSection('home')}
-              className="text-gray-300 hover:text-cyan-400 transition-all duration-300 font-medium relative group py-2"
+              className="text-gray-300 hover:text-cyan-400 transition-all duration-300 font-medium relative group py-2 text-sm lg:text-base"
             >
               Home
               <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-cyan-500 to-blue-600 transition-all duration-300 group-hover:w-full"></span>
@@ -107,14 +107,14 @@ export default function Header() {
               onMouseEnter={() => setIsServicesOpen(true)}
               onMouseLeave={() => setIsServicesOpen(false)}
             >
-              <button className="text-gray-300 hover:text-cyan-400 transition-all duration-300 font-medium relative group py-2 flex items-center space-x-1">
+              <button className="text-gray-300 hover:text-cyan-400 transition-all duration-300 font-medium relative group py-2 flex items-center space-x-1 text-sm lg:text-base">
                 <span>Services</span>
                 <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isServicesOpen ? 'rotate-180' : ''}`} />
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-cyan-500 to-blue-600 transition-all duration-300 group-hover:w-full"></span>
               </button>
               
               {/* Services Dropdown Menu */}
-              <div className={`absolute top-full left-0 mt-2 w-80 bg-gray-900/98 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-700/50 transition-all duration-300 ${
+              <div className={`absolute top-full left-0 mt-2 w-80 lg:w-96 bg-gray-900/98 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-700/50 transition-all duration-300 ${
                 isServicesOpen ? 'opacity-100 visible translate-y-0' : 'opacity-0 invisible -translate-y-2'
               }`}>
                 <div className="p-4">
@@ -139,14 +139,14 @@ export default function Header() {
 
             <button
               onClick={() => scrollToSection('about')}
-              className="text-gray-300 hover:text-cyan-400 transition-all duration-300 font-medium relative group py-2"
+              className="text-gray-300 hover:text-cyan-400 transition-all duration-300 font-medium relative group py-2 text-sm lg:text-base"
             >
               About
               <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-cyan-500 to-blue-600 transition-all duration-300 group-hover:w-full"></span>
             </button>
             <button
               onClick={() => scrollToSection('contact')}
-              className="text-gray-300 hover:text-cyan-400 transition-all duration-300 font-medium relative group py-2"
+              className="text-gray-300 hover:text-cyan-400 transition-all duration-300 font-medium relative group py-2 text-sm lg:text-base"
             >
               Contact
               <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-cyan-500 to-blue-600 transition-all duration-300 group-hover:w-full"></span>
@@ -176,13 +176,13 @@ export default function Header() {
               <>
                 <Link
                   to="/client/login"
-                  className="text-gray-300 hover:text-cyan-400 transition-all duration-300 font-medium px-4 py-2 rounded-lg hover:bg-gray-800/50"
+                  className="text-gray-300 hover:text-cyan-400 transition-all duration-300 font-medium px-3 lg:px-4 py-2 rounded-lg hover:bg-gray-800/50 text-sm lg:text-base"
                 >
                   Login
                 </Link>
                 <Link
                   to="/client/register"
-                  className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white px-8 py-3 rounded-xl hover:from-cyan-600 hover:to-blue-700 transition-all duration-300 shadow-lg hover:shadow-2xl font-semibold transform hover:scale-105"
+                  className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white px-4 lg:px-8 py-2 lg:py-3 rounded-xl hover:from-cyan-600 hover:to-blue-700 transition-all duration-300 shadow-lg hover:shadow-2xl font-semibold transform hover:scale-105 text-sm lg:text-base"
                 >
                   Sign Up
                 </Link>
@@ -205,11 +205,11 @@ export default function Header() {
 
         {/* Mobile Menu */}
         {isMenuOpen && (
-          <div className="md:hidden py-6 border-t border-gray-700/50 bg-gray-900/98 backdrop-blur-xl">
+          <div className="md:hidden py-4 border-t border-gray-700/50 bg-gray-900/98 backdrop-blur-xl">
             <div className="flex flex-col space-y-2">
               <button
                 onClick={() => scrollToSection('home')}
-                className="text-left text-gray-300 hover:text-cyan-400 transition-all duration-300 py-3 px-4 rounded-lg hover:bg-gray-800/50 font-medium"
+                className="text-left text-gray-300 hover:text-cyan-400 transition-all duration-300 py-3 px-4 rounded-lg hover:bg-gray-800/50 font-medium text-base"
               >
                 Home
               </button>
@@ -218,19 +218,19 @@ export default function Header() {
               <div>
                 <button
                   onClick={() => setIsServicesOpen(!isServicesOpen)}
-                  className="w-full text-left text-gray-300 hover:text-cyan-400 transition-all duration-300 py-3 px-4 rounded-lg hover:bg-gray-800/50 font-medium flex items-center justify-between"
+                  className="w-full text-left text-gray-300 hover:text-cyan-400 transition-all duration-300 py-3 px-4 rounded-lg hover:bg-gray-800/50 font-medium flex items-center justify-between text-base"
                 >
                   <span>Services</span>
                   <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isServicesOpen ? 'rotate-180' : ''}`} />
                 </button>
                 
                 {isServicesOpen && (
-                  <div className="ml-4 mt-2 space-y-1">
+                  <div className="ml-4 mt-2 space-y-1 max-h-64 overflow-y-auto">
                     {services.map((service, index) => (
                       <Link
                         key={index}
                         to={service.link}
-                        className="block text-gray-400 hover:text-cyan-400 transition-all duration-300 py-2 px-4 rounded-lg hover:bg-gray-800/30 text-sm"
+                        className="block text-gray-400 hover:text-cyan-400 transition-all duration-300 py-2 px-4 rounded-lg hover:bg-gray-800/30 text-sm leading-relaxed"
                         onClick={() => {
                           setIsMenuOpen(false);
                           setIsServicesOpen(false);
@@ -245,13 +245,13 @@ export default function Header() {
               
               <button
                 onClick={() => scrollToSection('about')}
-                className="text-left text-gray-300 hover:text-cyan-400 transition-all duration-300 py-3 px-4 rounded-lg hover:bg-gray-800/50 font-medium"
+                className="text-left text-gray-300 hover:text-cyan-400 transition-all duration-300 py-3 px-4 rounded-lg hover:bg-gray-800/50 font-medium text-base"
               >
                 About
               </button>
               <button
                 onClick={() => scrollToSection('contact')}
-                className="text-left text-gray-300 hover:text-cyan-400 transition-all duration-300 py-3 px-4 rounded-lg hover:bg-gray-800/50 font-medium"
+                className="text-left text-gray-300 hover:text-cyan-400 transition-all duration-300 py-3 px-4 rounded-lg hover:bg-gray-800/50 font-medium text-base"
               >
                 Contact
               </button>
@@ -261,7 +261,7 @@ export default function Header() {
                   <div className="flex flex-col space-y-2">
                     <Link
                       to="/client/dashboard"
-                      className="flex items-center space-x-2 text-gray-300 hover:text-cyan-400 transition-all duration-300 py-3 px-4 rounded-lg hover:bg-gray-800/50 font-medium"
+                      className="flex items-center space-x-2 text-gray-300 hover:text-cyan-400 transition-all duration-300 py-3 px-4 rounded-lg hover:bg-gray-800/50 font-medium text-base"
                       onClick={() => setIsMenuOpen(false)}
                     >
                       <User className="w-4 h-4" />
@@ -269,7 +269,7 @@ export default function Header() {
                     </Link>
                     <button
                       onClick={handleSignOut}
-                      className="flex items-center space-x-2 text-gray-300 hover:text-red-400 transition-all duration-300 py-3 px-4 rounded-lg hover:bg-red-900/20 text-left font-medium"
+                      className="flex items-center space-x-2 text-gray-300 hover:text-red-400 transition-all duration-300 py-3 px-4 rounded-lg hover:bg-red-900/20 text-left font-medium text-base"
                     >
                       <LogOut className="w-4 h-4" />
                       <span>Sign Out</span>
@@ -279,14 +279,14 @@ export default function Header() {
                   <div className="flex flex-col space-y-2">
                     <Link
                       to="/client/login"
-                      className="text-gray-300 hover:text-cyan-400 transition-all duration-300 py-3 px-4 rounded-lg hover:bg-gray-800/50 font-medium"
+                      className="text-gray-300 hover:text-cyan-400 transition-all duration-300 py-3 px-4 rounded-lg hover:bg-gray-800/50 font-medium text-base"
                       onClick={() => setIsMenuOpen(false)}
                     >
                       Login
                     </Link>
                     <Link
                       to="/client/register"
-                      className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white px-8 py-3 rounded-xl hover:from-cyan-600 hover:to-blue-700 transition-all duration-300 shadow-lg hover:shadow-2xl text-center font-semibold"
+                      className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white px-6 py-3 rounded-xl hover:from-cyan-600 hover:to-blue-700 transition-all duration-300 shadow-lg hover:shadow-2xl text-center font-semibold text-base"
                       onClick={() => setIsMenuOpen(false)}
                     >
                       Sign Up

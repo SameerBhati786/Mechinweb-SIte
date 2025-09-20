@@ -175,30 +175,30 @@ const Services: React.FC = () => {
             return (
               <div
                 key={index}
-                className="group bg-gray-800/50 backdrop-blur-sm rounded-2xl p-8 border border-gray-700/50 hover:border-cyan-500/50 transition-all duration-500 transform hover:scale-105 hover:shadow-2xl hover:shadow-cyan-500/20"
+                className="group bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 lg:p-8 border border-gray-700/50 hover:border-cyan-500/50 transition-all duration-500 transform hover:scale-105 hover:shadow-2xl hover:shadow-cyan-500/20"
               >
                 <div className={`w-16 h-16 bg-gradient-to-r ${service.gradient} rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300`}>
                   <IconComponent className="w-8 h-8 text-white" />
                 </div>
                 
-                <h3 className="text-2xl font-bold text-white mb-4 group-hover:text-cyan-400 transition-colors duration-300">
+                <h3 className="text-xl lg:text-2xl font-bold text-white mb-4 group-hover:text-cyan-400 transition-colors duration-300">
                   {service.title}
                 </h3>
                 
-                <p className="text-gray-300 mb-6 leading-relaxed">
+                <p className="text-gray-300 mb-6 leading-relaxed text-sm lg:text-base">
                   {service.description}
                 </p>
                 
                 {/* Pricing Display */}
-                <div className="mb-6 p-4 bg-gray-700/30 rounded-xl">
+                <div className="mb-6 p-3 lg:p-4 bg-gray-700/30 rounded-xl">
                   <div className="flex items-center justify-between">
                     <span className="text-gray-400 text-sm">Starting from</span>
                     <div className="text-right">
                       {loading ? (
-                        <div className="text-2xl font-bold text-cyan-400 animate-pulse">...</div>
+                        <div className="text-xl lg:text-2xl font-bold text-cyan-400 animate-pulse">...</div>
                       ) : (
                         <div className="text-xs text-gray-400">
-                          <div className="text-2xl font-bold text-cyan-400">
+                          <div className="text-xl lg:text-2xl font-bold text-cyan-400">
                             {service.priceKey && convertedPrices[service.priceKey] 
                               ? formatCurrency(convertedPrices[service.priceKey], userCurrency)
                               : 'Contact for pricing'
@@ -224,14 +224,14 @@ const Services: React.FC = () => {
                   {service.features.map((feature, featureIndex) => (
                     <div key={featureIndex} className="flex items-center text-gray-400">
                       <CheckCircle className="w-4 h-4 text-green-400 mr-2 flex-shrink-0" />
-                      <span className="text-sm">{feature}</span>
+                      <span className="text-xs lg:text-sm">{feature}</span>
                     </div>
                   ))}
                 </div>
 
                 <Link
                   to={service.link}
-                  className="inline-flex items-center text-cyan-400 hover:text-cyan-300 font-semibold group-hover:translate-x-2 transition-all duration-300"
+                  className="inline-flex items-center text-cyan-400 hover:text-cyan-300 font-semibold group-hover:translate-x-2 transition-all duration-300 text-sm lg:text-base"
                 >
                   Learn More
                   <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-300" />
@@ -242,17 +242,17 @@ const Services: React.FC = () => {
         </div>
 
         <div className="text-center mt-16">
-          <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-8 border border-cyan-500/20 max-w-4xl mx-auto">
-            <h3 className="text-2xl font-bold text-white mb-4">
+          <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 lg:p-8 border border-cyan-500/20 max-w-4xl mx-auto">
+            <h3 className="text-xl lg:text-2xl font-bold text-white mb-4">
               Need a Custom Solution?
             </h3>
-            <p className="text-gray-300 mb-6">
+            <p className="text-gray-300 mb-6 text-sm lg:text-base">
               We offer tailored IT solutions to meet your specific business requirements. 
               Contact us for a personalized consultation and custom pricing.
             </p>
             <Link
               to="/#contact"
-              className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-semibold rounded-lg hover:from-cyan-600 hover:to-purple-700 transition-all duration-300 transform hover:scale-105"
+              className="inline-flex items-center px-6 lg:px-8 py-3 lg:py-4 bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-semibold rounded-lg hover:from-cyan-600 hover:to-purple-700 transition-all duration-300 transform hover:scale-105 text-sm lg:text-base"
             >
               Get Custom Quote
               <ArrowRight className="w-5 h-5 ml-2" />

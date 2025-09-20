@@ -31,7 +31,9 @@ const validateZohoConfig = () => {
     hasClientId: !!ZOHO_CONFIG.clientId,
     hasClientSecret: !!ZOHO_CONFIG.clientSecret,
     hasRefreshToken: !!ZOHO_CONFIG.refreshToken,
-    hasOrgId: !!ZOHO_CONFIG.organizationId
+    hasOrgId: !!ZOHO_CONFIG.organizationId,
+    clientIdLength: ZOHO_CONFIG.clientId?.length,
+    orgId: ZOHO_CONFIG.organizationId
   });
 };
 
@@ -40,12 +42,12 @@ const getZohoAccessToken = async () => {
   try {
     log('info', 'Requesting Zoho access token...');
     
-    const tokenParams = new URLSearchParams({
+    const tokenParams = {
       refresh_token: ZOHO_CONFIG.refreshToken,
       client_id: ZOHO_CONFIG.clientId,
       client_secret: ZOHO_CONFIG.clientSecret,
       grant_type: 'refresh_token'
-    });
+    };
 
     log('info', 'Token request params prepared', {
       grant_type: 'refresh_token',
@@ -56,7 +58,7 @@ const getZohoAccessToken = async () => {
 
     const response = await axios.post(
       'https://accounts.zoho.in/oauth/v2/token',
-      tokenParams.toString(),
+      new URLSearchParams(tokenParams).toString(),
       {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded'
@@ -96,53 +98,13 @@ const getZohoAccessToken = async () => {
   }
 };
 
-// Test Zoho API connection with proper organization validation
+// Test Zoho API connection with simpler approach
 const testZohoConnection = async (accessToken) => {
   try {
-    log('info', 'Testing Zoho API connection...');
+    log('info', 'Testing Zoho API connection with direct contact list...');
     
-    // First test: Get organization info
-    const orgResponse = await axios.get(
-      'https://invoice.zoho.in/api/v3/organizations',
-      {
-        headers: {
-          'Authorization': `Zoho-oauthtoken ${accessToken}`,
-          'Content-Type': 'application/json'
-        },
-        timeout: 15000
-      }
-    );
-
-    log('info', 'Organization API test', {
-      status: orgResponse.status,
-      organizationsCount: orgResponse.data.organizations?.length || 0,
-      organizations: orgResponse.data.organizations?.map(org => ({
-        id: org.organization_id,
-        name: org.name
-      })) || []
-    });
-
-    // Validate organization ID
-    const organizations = orgResponse.data.organizations || [];
-    const targetOrg = organizations.find(org => org.organization_id === ZOHO_CONFIG.organizationId);
-    
-    if (!targetOrg) {
-      log('error', 'Organization ID not found', {
-        providedOrgId: ZOHO_CONFIG.organizationId,
-        availableOrgs: organizations.map(org => ({
-          id: org.organization_id,
-          name: org.name
-        }))
-      });
-      throw new Error(`Organization ID ${ZOHO_CONFIG.organizationId} not found. Available organizations: ${organizations.map(org => `${org.name} (${org.organization_id})`).join(', ')}`);
-    }
-
-    log('info', 'Organization validated successfully', {
-      orgId: targetOrg.organization_id,
-      orgName: targetOrg.name
-    });
-
-    // Second test: Try to access contacts with the organization
+    // Skip organization validation and go directly to contacts API
+    // This is more reliable as some Zoho accounts don't have access to organizations endpoint
     const contactsResponse = await axios.get(
       `${ZOHO_CONFIG.baseUrl}/contacts`,
       {
@@ -160,7 +122,8 @@ const testZohoConnection = async (accessToken) => {
 
     log('info', 'Contacts API test successful', {
       status: contactsResponse.status,
-      contactsCount: contactsResponse.data.contacts?.length || 0
+      contactsCount: contactsResponse.data.contacts?.length || 0,
+      organizationId: ZOHO_CONFIG.organizationId
     });
 
     return true;
@@ -170,11 +133,18 @@ const testZohoConnection = async (accessToken) => {
       statusText: error.response?.statusText,
       data: error.response?.data,
       message: error.message,
-      url: error.config?.url
+      url: error.config?.url,
+      organizationId: ZOHO_CONFIG.organizationId
     });
 
+    // Provide specific error messages based on the error code
     if (error.response?.status === 401) {
-      throw new Error('Zoho API authorization failed. Please check your organization ID and API permissions.');
+      const errorCode = error.response?.data?.code;
+      if (errorCode === 57) {
+        throw new Error(`Zoho API Error 57: Organization ID ${ZOHO_CONFIG.organizationId} is invalid or you don't have access to it. Please verify your ZOHO_ORGANIZATION_ID in Netlify environment variables.`);
+      } else {
+        throw new Error('Zoho API authorization failed. Please check your refresh token and API permissions.');
+      }
     }
 
     throw error;
@@ -422,8 +392,64 @@ exports.handler = async (event, context) => {
     // Get access token
     const accessToken = await getZohoAccessToken();
     
-    // Test API connection
-    await testZohoConnection(accessToken);
+    // For GET requests, just test the connection and return success
+    if (event.httpMethod === 'GET') {
+      log('info', 'GET request - testing connection only');
+      
+      // Test with a simple contacts API call instead of organizations
+      try {
+        await testZohoConnection(accessToken);
+        
+        return {
+          statusCode: 200,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            success: true,
+            message: 'Zoho integration is working correctly',
+            timestamp: new Date().toISOString(),
+            requestId,
+            config: {
+              hasClientId: !!ZOHO_CONFIG.clientId,
+              hasClientSecret: !!ZOHO_CONFIG.clientSecret,
+              hasRefreshToken: !!ZOHO_CONFIG.refreshToken,
+              hasOrgId: !!ZOHO_CONFIG.organizationId,
+              organizationId: ZOHO_CONFIG.organizationId,
+              apiConnectionSuccessful: true
+            }
+          })
+        };
+      } catch (testError) {
+        // If connection test fails, still return the configuration status
+        log('warning', 'Connection test failed but credentials are valid', testError);
+        
+        return {
+          statusCode: 200,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            success: false,
+            message: 'Zoho credentials are valid but API access failed',
+            error: testError.message,
+            timestamp: new Date().toISOString(),
+            requestId,
+            config: {
+              hasClientId: !!ZOHO_CONFIG.clientId,
+              hasClientSecret: !!ZOHO_CONFIG.clientSecret,
+              hasRefreshToken: !!ZOHO_CONFIG.refreshToken,
+              hasOrgId: !!ZOHO_CONFIG.organizationId,
+              organizationId: ZOHO_CONFIG.organizationId,
+              tokenObtained: true,
+              apiConnectionFailed: true
+            }
+          })
+        };
+      }
+    }
 
     // Parse request for POST requests
     let requestData = {};
@@ -441,7 +467,7 @@ exports.handler = async (event, context) => {
       }
     }
 
-    // Handle different request types
+    // Handle POST requests for customer and invoice creation
     if (event.httpMethod === 'POST') {
       // Handle customer creation and invoice creation
       if (requestData.customerData && requestData.serviceItems) {
@@ -494,54 +520,6 @@ exports.handler = async (event, context) => {
         throw new Error('Invalid request data. Expected customerData and serviceItems or customer details.');
       }
     }
-    
-    // Handle GET requests (status checks, etc.)
-    else if (event.httpMethod === 'GET') {
-      const url = new URL(`https://example.com${event.path}`);
-      const pathSegments = url.pathname.split('/').filter(Boolean);
-      
-      // Get invoice status
-      if (pathSegments.includes('invoices') && pathSegments.length >= 3) {
-        const invoiceId = pathSegments[pathSegments.length - 1];
-        const status = await getZohoInvoiceStatus(accessToken, invoiceId);
-        return {
-          statusCode: 200,
-          headers: {
-            'Access-Control-Allow-Origin': '*',
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            success: true,
-            status,
-            requestId
-          })
-        };
-      }
-      
-      // Test connection
-      else {
-        return {
-          statusCode: 200,
-          headers: {
-            'Access-Control-Allow-Origin': '*',
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            success: true,
-            message: 'Zoho integration is working correctly',
-            timestamp: new Date().toISOString(),
-            requestId,
-            config: {
-              hasClientId: !!ZOHO_CONFIG.clientId,
-              hasClientSecret: !!ZOHO_CONFIG.clientSecret,
-              hasRefreshToken: !!ZOHO_CONFIG.refreshToken,
-              hasOrgId: !!ZOHO_CONFIG.organizationId,
-              apiConnectionSuccessful: true
-            }
-          })
-        };
-      }
-    }
 
     // Invalid method
     return {
@@ -579,9 +557,30 @@ exports.handler = async (event, context) => {
           hasClientId: !!ZOHO_CONFIG.clientId,
           hasClientSecret: !!ZOHO_CONFIG.clientSecret,
           hasRefreshToken: !!ZOHO_CONFIG.refreshToken,
-          hasOrgId: !!ZOHO_CONFIG.organizationId
+          hasOrgId: !!ZOHO_CONFIG.organizationId,
+          organizationId: ZOHO_CONFIG.organizationId
         }
       })
     };
   }
+};
+
+// Helper function to test connection without throwing errors
+const testZohoConnection = async (accessToken) => {
+  const response = await axios.get(
+    `${ZOHO_CONFIG.baseUrl}/contacts`,
+    {
+      headers: {
+        'Authorization': `Zoho-oauthtoken ${accessToken}`,
+        'X-com-zoho-invoice-organizationid': ZOHO_CONFIG.organizationId,
+        'Content-Type': 'application/json'
+      },
+      params: {
+        per_page: 1
+      },
+      timeout: 15000
+    }
+  );
+
+  return response.data;
 };

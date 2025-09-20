@@ -46,7 +46,7 @@ const Hero = () => {
           isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
         }`}>
           {/* Main heading */}
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold text-white mb-6 leading-tight">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-white mb-6 leading-tight px-4">
             <span className="block">Your Trusted Partner</span>
             <span className="block bg-gradient-to-r from-cyan-200 to-purple-200 bg-clip-text text-transparent">
               for Seamless IT &amp; Cloud Solutions
@@ -54,32 +54,32 @@ const Hero = () => {
           </h1>
 
           {/* Tagline */}
-          <p className="text-xl sm:text-2xl text-cyan-100 mb-8 max-w-3xl mx-auto leading-relaxed">
+          <p className="text-lg sm:text-xl md:text-2xl text-cyan-100 mb-8 max-w-3xl mx-auto leading-relaxed px-4">
             Professional cloud migrations, DNS troubleshooting, and hosting support 
             for businesses seeking fast, reliable, and expert IT solutions.
           </p>
 
           {/* Stats */}
-          <div className="flex flex-wrap justify-center gap-8 mb-10">
+          <div className="flex flex-wrap justify-center gap-4 sm:gap-6 lg:gap-8 mb-10 px-4">
             <div className="flex items-center space-x-2 text-white">
               <Users className="h-5 w-5 text-cyan-300" />
-              <span className="text-lg font-semibold">50+ Happy Clients</span>
+              <span className="text-sm sm:text-base lg:text-lg font-semibold">50+ Happy Clients</span>
             </div>
             <div className="flex items-center space-x-2 text-white">
               <Star className="h-5 w-5 text-yellow-400" />
-              <span className="text-lg font-semibold">4.9/5 Rating</span>
+              <span className="text-sm sm:text-base lg:text-lg font-semibold">4.9/5 Rating</span>
             </div>
             <div className="flex items-center space-x-2 text-white">
               <Award className="h-5 w-5 text-emerald-400" />
-              <span className="text-lg font-semibold">100% Success Rate</span>
+              <span className="text-sm sm:text-base lg:text-lg font-semibold">100% Success Rate</span>
             </div>
           </div>
 
           {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center px-4">
             <button
               onClick={scrollToQuote}
-              className="group relative px-8 py-4 bg-white text-cyan-600 font-semibold rounded-full hover:bg-cyan-50 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
+              className="group relative px-6 sm:px-8 py-3 sm:py-4 bg-white text-cyan-600 font-semibold rounded-full hover:bg-cyan-50 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl w-full sm:w-auto text-center"
             >
               <span className="flex items-center space-x-2">
                 <span>Contact Us</span>
@@ -88,7 +88,7 @@ const Hero = () => {
             </button>
             <a
               href="#services"
-              className="px-8 py-4 border-2 border-white text-white font-semibold rounded-full hover:bg-white hover:text-cyan-600 transition-all duration-300 transform hover:scale-105"
+              className="px-6 sm:px-8 py-3 sm:py-4 border-2 border-white text-white font-semibold rounded-full hover:bg-white hover:text-cyan-600 transition-all duration-300 transform hover:scale-105 w-full sm:w-auto text-center"
             >
               View Services
             </a>
